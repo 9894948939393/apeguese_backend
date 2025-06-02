@@ -22,10 +22,9 @@ def criar_app():
     CORS(app, origins=[os.getenv("FRONTEND_URL")], supports_credentials=True)
     logging.basicConfig(level=logging.INFO)
 
-    @app.before_first_request
-    def setup():
-        criar_tabelas()
-        logging.info("Tabelas criadas ou já existentes.")
+
+    criar_tabelas()
+
 
 
     def gerar_codigo_usuario():
