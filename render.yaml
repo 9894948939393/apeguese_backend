@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: clubraro-api
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: SECRET_KEY
+        fromEnv: SECRET_KEY
+      - key: FRONTEND_URL
+        fromEnv: FRONTEND_URL
+      - key: DB_HOST
+        fromEnv: DB_HOST
+      - key: DB_PORT
+        fromEnv: DB_PORT
+      - key: DB_USER
+        fromEnv: DB_USER
+      - key: DB_PASSWORD
+        fromEnv: DB_PASSWORD
+      - key: DB_NAME
+        fromEnv: DB_NAME
