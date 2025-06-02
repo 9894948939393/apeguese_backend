@@ -369,23 +369,6 @@ def criar_app():
         return dados
 
     # ---------------------------------------------------------------------
-    @app.route('/api/hello')
-    def hello():
-        return jsonify({"message": "Olá do Flask!"})
-
-    @app.route('/api/data', methods=['POST'])
-    def receive_data():
-        return jsonify({"received": request.get_json()})
-
-    @app.route('/produtos', methods=['GET'])
-    def listar_produtos():
-        produtos = carregar_produtos()
-        return jsonify({"produtos": produtos})
-
-    @app.route('/pedidos', methods=['GET'])
-    def listar_pedidos():
-        pedidos = carregar_pedidos()
-        return jsonify({"pedidos": pedidos})
 
     @app.route('/adicionar_produto', methods=['POST'])
     def adicionar_produto():
