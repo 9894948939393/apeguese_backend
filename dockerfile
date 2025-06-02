@@ -1,28 +1,31 @@
-FROM python:3.11-slim
+# Usa imagem base com Python
+FROM python:3.10-slim
 
-RUN apt-get update && apt-get install -y curl build-essential libssl-dev pkg-config
+# Instala dependências do sistema + Rust
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    libssl-dev \
+    libffi-dev \
+    pkg-config \
+    && curl https://sh.rustup.rs -sSf | sh -s -- -y \
+    && . "$HOME/.cargo/env"
 
-# Instala rustup (Rust toolchain installer)
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+# Adiciona Rust ao PATH
+ENV PATH="/root/.cargo/bin:$PATH"
 
-# Define variáveis de ambiente para rustup e cargo
-ENV RUSTUP_HOME=/root/.rustup
-ENV CARGO_HOME=/root/.cargo
-ENV PATH="/root/.cargo/bin:${PATH}"
+# Cria diretório da aplicação
+WORKDIR /app
 
-# Configura toolchain padrão stable
-RUN rustup default stable
+# Copia os arquivos da aplicação
+COPY . .
 
-# Cria ambiente virtual
-RUN python -m venv /venv
-ENV PATH="/venv/bin:${PATH}"
-
-COPY requirements.txt .
+# Instala dependências Python
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-COPY . .
-
+# Expõe a porta
 EXPOSE 5000
 
-CMD ["flask", "run", "--host=0.0.0.0"]
+# Comando para rodar o app (ajuste conforme necessário)
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]
