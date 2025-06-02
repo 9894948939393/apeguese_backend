@@ -23,4 +23,4 @@ ENV FLASK_ENV=production
 EXPOSE 5000
 
 # Comando de execução
-CMD ["python", "app.py"]
+CMD ["python", "wsgi.py"]
