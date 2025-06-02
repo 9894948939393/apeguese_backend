@@ -23,7 +23,13 @@ def criar_app():
     logging.basicConfig(level=logging.INFO)
 
 
-    criar_tabelas()
+    @app.route("/init-db")
+    def init_db():
+        try:
+            criar_tabelas()
+            return jsonify({"status": "Tabelas criadas com sucesso"})
+        except Exception as e:
+            return jsonify({"erro": str(e)}), 500
 
 
 
