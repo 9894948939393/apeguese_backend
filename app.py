@@ -19,15 +19,7 @@ def criar_app():
         SESSION_COOKIE_SAMESITE='Lax',
     )
     app.secret_key = os.getenv("SECRET_KEY")
-    origins = [
-    os.getenv("FRONTEND_URL"),
-    os.getenv("FRONTEND_URL2"),
-    os.getenv("FRONTEND_URL3")  # se quiser adicionar mais
-]
-# Remove possíveis valores None
-    origins = [url for url in origins if url]
-
-    CORS(app, origins=origins, supports_credentials=True)
+    CORS(app)
     logging.basicConfig(level=logging.INFO)
 
 
