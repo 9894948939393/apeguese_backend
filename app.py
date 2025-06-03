@@ -53,7 +53,7 @@ def criar_app():
         telefone = dados.get("telefone")
         cpf = dados.get("cpf")
         data_nascimento = dados.get("dataNascimento")
-        confirmarSenha = dados.get(confirmarSenha)
+        confirmarSenha = dados.get("confirmarSenha")
         if not (usuario and email and senha):
             return jsonify({"erro": "Campos obrigatórios não preenchidos."}), 400
         if confirmarSenha == senha:
