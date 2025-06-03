@@ -3,22 +3,75 @@ import json
 import ast
 import random
 import logging
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session,send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from db import get_db_connection, criar_tabelas
 from security import encriptar_dados, decriptar_dados
+from werkzeug.utils import secure_filename
 
 load_dotenv()
 
 def criar_app():
     app = Flask(__name__)
+    def gerar_codigo_produto():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT codigo FROM produtos")
+        codigos_existentes = [str(row['codigo']) for row in cursor.fetchall()]
+        while True:
+            codigo = str(random.randint(100000000, 999999999))
+            if codigo not in codigos_existentes:
+                cursor.close()
+                conn.close()
+                return codigo
+
+    def salvar_imagem(imagem, codigo, nome):
+        if imagem:
+            nome_limpo = secure_filename(f"{nome.replace(' ', '')}_{codigo}.jpg")
+            send_from_directory(app.config['UPLOAD_FOLDER'], nome_limpo)
+            return nome_limpo
+        return ''
+
+    def adicionar_item(nome, marca, cor, numeracao, genero, valor, descricao, imagem):
+        codigo = gerar_codigo_produto()
+        nome_imagem = salvar_imagem(imagem, codigo, nome)
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO produtos (nome, marca, cor, numeracao, genero, valor, descricao, imagem, codigo)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (nome, marca, cor, numeracao, genero, valor, descricao, nome_imagem, codigo))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+
+    def carregar_produtos():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM produtos")
+        dados = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return dados
+
+    def carregar_pedidos():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM pedidos")
+        dados = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return dados
     app.config.update(
         SESSION_COOKIE_SECURE=True,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',
     )
     app.secret_key = os.getenv("SECRET_KEY")
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     origins = [
     os.getenv("FRONTEND_URL"),
     os.getenv("FRONTEND_URL2"),
@@ -330,58 +383,6 @@ def criar_app():
         margem = 0.30
         return round(preco_total * (1 + margem), 2)
 
-    def gerar_codigo_produto():
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT codigo FROM produtos")
-        codigos_existentes = [str(row['codigo']) for row in cursor.fetchall()]
-        while True:
-            codigo = str(random.randint(100000000, 999999999))
-            if codigo not in codigos_existentes:
-                cursor.close()
-                conn.close()
-                return codigo
-
-    def salvar_imagem(imagem, codigo, nome):
-        if imagem:
-            nome_limpo = secure_filename(f"{nome.replace(' ', '')}_{codigo}.jpg")
-            caminho = os.path.join(app.config['UPLOAD_FOLDER'], nome_limpo)
-            imagem.save(caminho)
-            return nome_limpo
-        return ''
-
-    def adicionar_item(nome, marca, cor, numeracao, genero, valor, descricao, imagem):
-        codigo = gerar_codigo_produto()
-        nome_imagem = salvar_imagem(imagem, codigo, nome)
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO produtos (nome, marca, cor, numeracao, genero, valor, descricao, imagem, codigo)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (nome, marca, cor, numeracao, genero, valor, descricao, nome_imagem, codigo))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return True
-
-    def carregar_produtos():
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM produtos")
-        dados = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return dados
-
-    def carregar_pedidos():
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM pedidos")
-        dados = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return dados
 
     # ---------------------------------------------------------------------
 
