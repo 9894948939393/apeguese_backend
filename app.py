@@ -19,9 +19,14 @@ def criar_app():
         SESSION_COOKIE_SAMESITE='Lax',
     )
     app.secret_key = os.getenv("SECRET_KEY")
-    CORS(app, supports_credentials=True, origins=["https://clubraro-frontend.onrender.com/","https://clubraro.com.br","https://www.clubraro.com.br"])
+    origins = [
+    os.getenv("FRONTEND_URL"),
+    os.getenv("FRONTEND_URL2"),
+    os.getenv("FRONTEND_URL3")
+]
+    origins = [url for url in origins if url]
     logging.basicConfig(level=logging.INFO)
-
+    CORS(app, origins=origins, supports_credentials=True, methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
     @app.route("/init-db")
     def init_db():
@@ -409,4 +414,12 @@ def criar_app():
         conn.close()
         return jsonify({"message": "Produto deletado com sucesso"})
 
+    @app.after_request
+    def aplicar_cors_em_todas_respostas(response):
+        response.headers.add("Access-Control-Allow-Origin", request.headers.get("Origin", "*"))
+        response.headers.add("Access-Control-Allow-Credentials", "true")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "GET,POST,OPTIONS,PUT,DELETE")
+        return response
+    
     return app
