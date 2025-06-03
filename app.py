@@ -47,39 +47,39 @@ def criar_app():
     @app.route("/cadastro", methods=["POST"])
     def cadastro():
         dados = request.form
-        usuario = dados.get("usuario")
+        usuario = dados.get("nome")
         email = dados.get("email")
         senha = dados.get("senha")
         telefone = dados.get("telefone")
         cpf = dados.get("cpf")
         data_nascimento = dados.get("dataNascimento")
-
+        confirmarSenha = dados.get(confirmarSenha)
         if not (usuario and email and senha):
             return jsonify({"erro": "Campos obrigatórios não preenchidos."}), 400
+        if confirmarSenha == senha:
+            senha_encriptada = encriptar_dados(senha)
+            cpf_encriptado = encriptar_dados(cpf) if cpf else None
+            codigo_usuario = gerar_codigo_usuario()
 
-        senha_encriptada = encriptar_dados(senha)
-        cpf_encriptado = encriptar_dados(cpf) if cpf else None
-        codigo_usuario = gerar_codigo_usuario()
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute('''
+                    INSERT INTO usuarios (usuario, email, senha, telefone, cpf, data_nascimento, codigo_usuario, historico, favoritos, carrinho)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (usuario, email, senha_encriptada, telefone, cpf_encriptado, data_nascimento, codigo_usuario, "[]", "[]", "[]"))
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                logging.error(f"Erro ao inserir usuário: {e}")
+                return jsonify({"erro": "Erro ao cadastrar usuário. Email pode estar duplicado."})
+            finally:
+                cursor.close()
+                conn.close()
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute('''
-                INSERT INTO usuarios (usuario, email, senha, telefone, cpf, data_nascimento, codigo_usuario, historico, favoritos, carrinho)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (usuario, email, senha_encriptada, telefone, cpf_encriptado, data_nascimento, codigo_usuario, "[]", "[]", "[]"))
-            conn.commit()
-        except Exception as e:
-            conn.rollback()
-            logging.error(f"Erro ao inserir usuário: {e}")
-            return jsonify({"erro": "Erro ao cadastrar usuário. Email pode estar duplicado."}), 400
-        finally:
-            cursor.close()
-            conn.close()
-
-        return jsonify({"msg": "Usuário cadastrado com sucesso", "codigo": codigo_usuario})
-
-
+            return jsonify({"message": "Usuário cadastrado com sucesso", "codigo": codigo_usuario})
+        else:
+            return jsonify({"message": "As senhas não correspondem"})
     @app.route("/login", methods=["POST"])
     def login():
         dados = request.form
@@ -87,11 +87,10 @@ def criar_app():
         senha = dados.get("senha")
 
         if not (email and senha):
-            return jsonify({"erro": "Email e senha são obrigatórios"}), 400
+            return jsonify({"erro": "Email e senha são obrigatórios"}),400
 
-        if email == "clubraro65@gmail.com" and senha == "clubraro335555777777a":
-            session['usuario'] = "admin"
-            return jsonify({"msg": "Login realizado", "usuario": "admin", "codigo": "admin", "role": "admin"})
+        if email == "clubraro65@gmail.com" and senha == "clubraro335555777777":
+            return jsonify({"message": "admin", "usuario": "admin", "codigo": "admin", "role": "admin"})
 
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -101,14 +100,14 @@ def criar_app():
         conn.close()
 
         if not usuario:
-            return jsonify({"erro": "Usuário não encontrado"}), 404
+            return jsonify({"message": "Usuário ou senha incorretos, tente novamente"})
 
         senha_decriptada = decriptar_dados(usuario['senha'])
         if senha != senha_decriptada:
-            return jsonify({"erro": "Senha incorreta"}), 401
+            return jsonify({"message": "Usuário ou senha incorretos, tente novamente"})
 
         session['usuario'] = usuario['codigo_usuario']
-        return jsonify({"msg": "Login realizado", "usuario": usuario['usuario'], "codigo": usuario['codigo_usuario']})
+        return jsonify({"message": "Login realizado com sucesso", "usuario": usuario['usuario'], "codigo": usuario['codigo_usuario']})
 
 
     @app.route('/session', methods=['GET'])
