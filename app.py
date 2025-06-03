@@ -13,7 +13,7 @@ load_dotenv()
 
 def criar_app():
     app = Flask(__name__)
-    app.config['UPLOAD_FOLDER'] = '/var/www/uploads_clubraro'
+    app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
     def gerar_codigo_produto():
         conn = get_db_connection()
         cursor = conn.cursor()
