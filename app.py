@@ -19,7 +19,7 @@ def criar_app():
         SESSION_COOKIE_SAMESITE='Lax',
     )
     app.secret_key = os.getenv("SECRET_KEY")
-    CORS(app)
+    CORS(app, supports_credentials=True, origins=["https://clubraro-frontend.onrender.com/","https://clubraro.com.br","https://www.clubraro.com.br"])
     logging.basicConfig(level=logging.INFO)
 
 
@@ -41,7 +41,7 @@ def criar_app():
 
     @app.route("/cadastro", methods=["POST"])
     def cadastro():
-        dados = request.json
+        dados = request.form
         usuario = dados.get("usuario")
         email = dados.get("email")
         senha = dados.get("senha")
@@ -77,7 +77,7 @@ def criar_app():
 
     @app.route("/login", methods=["POST"])
     def login():
-        dados = request.json
+        dados = request.form
         email = dados.get("email")
         senha = dados.get("senha")
 
