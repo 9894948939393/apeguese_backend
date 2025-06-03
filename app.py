@@ -137,8 +137,8 @@ def criar_app():
         return jsonify({"produtos": produtos})
 
 
-    @app.route('/produtos', methods=['GET'])
-    def listar_produtos():
+    @app.route('/pedidos', methods=['GET'])
+    def listar_pedidos():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM pedidos")
