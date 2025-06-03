@@ -67,7 +67,7 @@ def criar_app():
                 cursor.execute('''
                     INSERT INTO usuarios (usuario, email, senha, telefone, cpf, data_nascimento, codigo_usuario, historico, favoritos, carrinho, cep, numero, rua, bairro, cidade, estado, complemento)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (usuario, email, senha_encriptada, telefone, cpf_encriptado, data_nascimento, codigo_usuario, "[]", "[]", "[]", "", "", "", "", "", "", ""))
+                ''', (usuario, email, senha_encriptada, telefone, cpf_encriptado, data_nascimento, codigo_usuario, "[]", "[]", "[]", "", "", "", "", "", "", "",))
                 conn.commit()
             except Exception as e:
                 conn.rollback()
@@ -427,40 +427,28 @@ def criar_app():
     @app.route("/atualizar_endereco", methods=["POST"])
     def atualizar_endereco():
         dados = request.form
-        usuario = dados.get("nome")
-        email = dados.get("email")
-        senha = dados.get("senha")
-        telefone = dados.get("telefone")
-        cpf = dados.get("cpf")
-        data_nascimento = dados.get("dataNascimento")
-        confirmarSenha = dados.get("confirmarSenha")
-        if not (usuario and email and senha):
-            return jsonify({"erro": "Campos obrigatórios não preenchidos."}), 400
-        if confirmarSenha == senha:
-            senha_encriptada = encriptar_dados(senha)
-            cpf_encriptado = encriptar_dados(cpf) if cpf else None
-            codigo_usuario = gerar_codigo_usuario()
+        cep = dados.get("cep")
+        numero = dados.get("rua")
+        rua = dados.get("numero")
+        bairro = dados.get("bairro")
+        cidade = dados.get("cidade")
+        estado = dados.get("estado")
+        complemento = dados.get("complemento")
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("UPDATE usuarios SET cep = %s, numero = %s , rua = %s, bairro = %s, cidade = %s, estado = %s, complemento = %s WHERE codigo_usuario = %s",
+                (cep,numero,rua,bairro,cidade,estado,complemento, session.get("usuario")))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            logging.error(f"Erro ao inserir usuário: {e}")
+            return jsonify({"erro": "Erro ao cadastrar usuário. Email pode estar duplicado."}),400
+        finally:
+            cursor.close()
+            conn.close()
 
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            try:
-                cursor.execute('''
-                    INSERT INTO usuarios (usuario, email, senha, telefone, cpf, data_nascimento, codigo_usuario, historico, favoritos, carrinho)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (usuario, email, senha_encriptada, telefone, cpf_encriptado, data_nascimento, codigo_usuario, "[]", "[]", "[]"))
-                conn.commit()
-            except Exception as e:
-                conn.rollback()
-                logging.error(f"Erro ao inserir usuário: {e}")
-                return jsonify({"erro": "Erro ao cadastrar usuário. Email pode estar duplicado."}),400
-            finally:
-                cursor.close()
-                conn.close()
-
-            return jsonify({"message": "Usuário cadastrado com sucesso", "codigo": codigo_usuario})
-        else:
-            return jsonify({"message": "As senhas não correspondem"})
-
+        return jsonify({"message": "Usuário cadastrado com sucesso", "codigo": codigo_usuario})
     @app.after_request
     def aplicar_cors_em_todas_respostas(response):
         response.headers.add("Access-Control-Allow-Origin", request.headers.get("Origin", "*"))
