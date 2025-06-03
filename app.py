@@ -65,9 +65,9 @@ def criar_app():
             cursor = conn.cursor()
             try:
                 cursor.execute('''
-                    INSERT INTO usuarios (usuario, email, senha, telefone, cpf, data_nascimento, codigo_usuario, historico, favoritos, carrinho)
+                    INSERT INTO usuarios (usuario, email, senha, telefone, cpf, data_nascimento, codigo_usuario, historico, favoritos, carrinho, cep, numero, rua, bairro, cidade, estado, complemento)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (usuario, email, senha_encriptada, telefone, cpf_encriptado, data_nascimento, codigo_usuario, "[]", "[]", "[]"))
+                ''', (usuario, email, senha_encriptada, telefone, cpf_encriptado, data_nascimento, codigo_usuario, "[]", "[]", "[]", "", "", "", "", "", "", ""))
                 conn.commit()
             except Exception as e:
                 conn.rollback()
