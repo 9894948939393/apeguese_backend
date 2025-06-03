@@ -72,7 +72,7 @@ def criar_app():
             except Exception as e:
                 conn.rollback()
                 logging.error(f"Erro ao inserir usuário: {e}")
-                return jsonify({"erro": "Erro ao cadastrar usuário. Email pode estar duplicado."})
+                return jsonify({"erro": "Erro ao cadastrar usuário. Email pode estar duplicado."}),400
             finally:
                 cursor.close()
                 conn.close()
