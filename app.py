@@ -9,11 +9,11 @@ from dotenv import load_dotenv
 from db import get_db_connection, criar_tabelas
 from security import encriptar_dados, decriptar_dados
 from werkzeug.utils import secure_filename
-app.config['UPLOAD_FOLDER'] = '/var/www/uploads_clubraro'
 load_dotenv()
 
 def criar_app():
     app = Flask(__name__)
+    app.config['UPLOAD_FOLDER'] = '/var/www/uploads_clubraro'
     def gerar_codigo_produto():
         conn = get_db_connection()
         cursor = conn.cursor()
