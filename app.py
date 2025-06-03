@@ -72,7 +72,7 @@ def criar_app():
             except Exception as e:
                 conn.rollback()
                 logging.error(f"Erro ao inserir usuário: {e}")
-                return jsonify({"erro": "Erro ao cadastrar usuário. Email pode estar duplicado."}),400
+                return jsonify({"erro": "Erro ao cadastrar usuário. Email pode estar duplicado."})
             finally:
                 cursor.close()
                 conn.close()
@@ -135,6 +135,17 @@ def criar_app():
         cursor.close()
         conn.close()
         return jsonify({"produtos": produtos})
+
+
+    @app.route('/produtos', methods=['GET'])
+    def listar_produtos():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM pedidos")
+        produtos = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify({"pedidos": produtos})
 
 
     @app.route('/selecionar_produto', methods=['POST'])
@@ -412,6 +423,43 @@ def criar_app():
         cursor.close()
         conn.close()
         return jsonify({"message": "Produto deletado com sucesso"})
+
+    @app.route("/atualizar_endereco", methods=["POST"])
+    def atualizar_endereco():
+        dados = request.form
+        usuario = dados.get("nome")
+        email = dados.get("email")
+        senha = dados.get("senha")
+        telefone = dados.get("telefone")
+        cpf = dados.get("cpf")
+        data_nascimento = dados.get("dataNascimento")
+        confirmarSenha = dados.get("confirmarSenha")
+        if not (usuario and email and senha):
+            return jsonify({"erro": "Campos obrigatórios não preenchidos."}), 400
+        if confirmarSenha == senha:
+            senha_encriptada = encriptar_dados(senha)
+            cpf_encriptado = encriptar_dados(cpf) if cpf else None
+            codigo_usuario = gerar_codigo_usuario()
+
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute('''
+                    INSERT INTO usuarios (usuario, email, senha, telefone, cpf, data_nascimento, codigo_usuario, historico, favoritos, carrinho)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (usuario, email, senha_encriptada, telefone, cpf_encriptado, data_nascimento, codigo_usuario, "[]", "[]", "[]"))
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                logging.error(f"Erro ao inserir usuário: {e}")
+                return jsonify({"erro": "Erro ao cadastrar usuário. Email pode estar duplicado."}),400
+            finally:
+                cursor.close()
+                conn.close()
+
+            return jsonify({"message": "Usuário cadastrado com sucesso", "codigo": codigo_usuario})
+        else:
+            return jsonify({"message": "As senhas não correspondem"})
 
     @app.after_request
     def aplicar_cors_em_todas_respostas(response):
