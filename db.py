@@ -57,8 +57,8 @@ def criar_tabelas():
         );
     ''')
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS pedidos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    CREATE TABLE IF NOT EXISTS pedidos (
+        id SERIAL PRIMARY KEY,
         usuario TEXT,
         comprador TEXT,
         produtos TEXT,
@@ -66,8 +66,8 @@ def criar_tabelas():
         status TEXT, 
         telefone TEXT,
         endereco TEXT   
-        )
-    ''')
+    );
+''')
     conn.commit()
     cursor.close()
     conn.close()
