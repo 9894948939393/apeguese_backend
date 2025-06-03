@@ -66,7 +66,7 @@ def criar_app():
             try:
                 cursor.execute('''
                     INSERT INTO usuarios (usuario, email, senha, telefone, cpf, data_nascimento, codigo_usuario, historico, favoritos, carrinho, cep, numero, rua, bairro, cidade, estado, complemento)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ''', (usuario, email, senha_encriptada, telefone, cpf_encriptado, data_nascimento, codigo_usuario, "[]", "[]", "[]", "", "", "", "", "", "", "",))
                 conn.commit()
             except Exception as e:
