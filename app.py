@@ -79,11 +79,6 @@ def criar_app():
         cursor.close()
         conn.close()
         return dados
-    app.config.update(
-        SESSION_COOKIE_SECURE=True,
-        SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE='Lax',
-    )
     app.secret_key = os.getenv("SECRET_KEY")
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     origins = [
