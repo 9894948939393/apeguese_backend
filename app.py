@@ -463,4 +463,4 @@ def criar_app():
         response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS,PUT,DELETE"
         return response
         
-        return app
+    return app
