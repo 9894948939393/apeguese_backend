@@ -4,6 +4,7 @@ import ast
 import logging
 import random
 import logging
+from flask_session import Session
 from flask import Flask, request, jsonify, session,send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -15,11 +16,31 @@ load_dotenv()
 def criar_app():
     app = Flask(__name__)
 
+    session_dir = os.path.join(os.getcwd(), 'flask_session')
+    os.makedirs(session_dir, exist_ok=True)
+
     app.config.update(
-    SESSION_COOKIE_SECURE=True,          # exige HTTPS
-    SESSION_COOKIE_HTTPONLY=True,        # não acessível via JS
-    SESSION_COOKIE_SAMESITE='None',      # necessário para domínios diferentes
-)
+        SECRET_KEY=os.getenv("SECRET_KEY"),
+        SESSION_TYPE='filesystem',
+        SESSION_FILE_DIR=session_dir,
+        SESSION_PERMANENT=True,
+        SESSION_USE_SIGNER=True,
+        SESSION_COOKIE_SAMESITE='None',  
+        SESSION_COOKIE_SECURE=True,    
+        SESSION_COOKIE_HTTPONLY=True,
+        UPLOAD_FOLDER=os.path.join(os.getcwd(), 'uploads')
+    )
+
+    Session(app)
+
+    logging.basicConfig(level=logging.INFO)
+
+    origins = list(filter(None, [
+        os.getenv("FRONTEND_URL"),
+        os.getenv("FRONTEND_URL2"),
+        os.getenv("FRONTEND_URL3")
+    ]))
+    CORS(app, origins=origins, supports_credentials=True)
 
     logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG para mais detalhes
@@ -61,34 +82,6 @@ def criar_app():
         cursor.close()
         conn.close()
         return True
-
-    def carregar_produtos():
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM produtos")
-        dados = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return dados
-
-    def carregar_pedidos():
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM pedidos")
-        dados = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return dados
-    app.secret_key = os.getenv("SECRET_KEY")
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    origins = [
-    os.getenv("FRONTEND_URL"),
-    os.getenv("FRONTEND_URL2"),
-    os.getenv("FRONTEND_URL3")
-]
-    origins = [url for url in origins if url]
-    logging.basicConfig(level=logging.INFO)
-    CORS(app, origins=origins, supports_credentials=True, methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
     @app.route("/init-db")
     def init_db():
