@@ -1,6 +1,7 @@
 import os
 import json
 import ast
+import logging
 import random
 import logging
 from flask import Flask, request, jsonify, session,send_from_directory
@@ -13,6 +14,12 @@ load_dotenv()
 
 def criar_app():
     app = Flask(__name__)
+
+    logging.basicConfig(
+    level=logging.DEBUG,  # ou DEBUG para mais detalhes
+    format='%(asctime)s [%(levelname)s] %(message)s'
+)
+
     app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
     def gerar_codigo_produto():
         conn = get_db_connection()
@@ -167,7 +174,7 @@ def criar_app():
     @app.route('/session', methods=['GET'])
     def listar_sessao():
         sessao = session.get("usuario")
-        print(sessao)
+        app.logger.info(sessao)
         return jsonify({"sessao": sessao})
 
 
