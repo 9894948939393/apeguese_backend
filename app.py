@@ -165,7 +165,9 @@ def criar_app():
 
     @app.route('/session', methods=['GET'])
     def listar_sessao():
-        return jsonify({"sessao": session.get("usuario")})
+        sessao = session.get("usuario")
+        print(sessao)
+        return jsonify({"sessao": sessao})
 
 
     @app.route('/perfil', methods=['GET'])
