@@ -367,7 +367,7 @@ def criar_app():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM pedidos WHERE email = %s", (usuario,))
+        cursor.execute("SELECT * FROM pedidos WHERE usuario = %s", (usuario,))
         pedidos = cursor.fetchall()
         produtos_carrinho = []
 
