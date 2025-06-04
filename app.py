@@ -15,6 +15,12 @@ load_dotenv()
 def criar_app():
     app = Flask(__name__)
 
+    app.config.update(
+    SESSION_COOKIE_SECURE=True,          # exige HTTPS
+    SESSION_COOKIE_HTTPONLY=True,        # não acessível via JS
+    SESSION_COOKIE_SAMESITE='None',      # necessário para domínios diferentes
+)
+
     logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG para mais detalhes
     format='%(asctime)s [%(levelname)s] %(message)s'
