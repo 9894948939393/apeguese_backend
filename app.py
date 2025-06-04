@@ -83,6 +83,35 @@ def criar_app():
         conn.close()
         return True
 
+    def carregar_produtos():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM produtos")
+        dados = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return dados
+
+    def carregar_pedidos():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM pedidos")
+        dados = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return dados
+
+
+    def carregar_usuarios():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM usuarios")
+        dados = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return dados
+    
+
     @app.route("/init-db")
     def init_db():
         try:
