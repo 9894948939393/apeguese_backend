@@ -91,7 +91,7 @@ def criar_app():
 
 
 
-    def gerar_codigo_usuario():
+    def gerar_email():
         return ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=8))
 
 
@@ -112,15 +112,15 @@ def criar_app():
         if confirmarSenha == senha:
             senha_encriptada = encriptar_dados(senha)
             cpf_encriptado = encriptar_dados(cpf) if cpf else None
-            codigo_usuario = gerar_codigo_usuario()
+            email = gerar_email()
 
             conn = get_db_connection()
             cursor = conn.cursor()
             try:
                 cursor.execute('''
-                    INSERT INTO usuarios (usuario, email, senha, telefone, cpf, data_nascimento, codigo_usuario, historico, favoritos, carrinho, cep, numero, rua, bairro, cidade, estado, complemento)
+                    INSERT INTO usuarios (usuario, email, senha, telefone, cpf, data_nascimento, email, historico, favoritos, carrinho, cep, numero, rua, bairro, cidade, estado, complemento)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (usuario, email, senha_encriptada, telefone, cpf_encriptado, data_nascimento, codigo_usuario, "[]", "[]", "[]", "", "", "", "", "", "", "",))
+                ''', (usuario, email, senha_encriptada, telefone, cpf_encriptado, data_nascimento, email, "[]", "[]", "[]", "", "", "", "", "", "", "",))
                 conn.commit()
             except Exception as e:
                 conn.rollback()
@@ -130,7 +130,7 @@ def criar_app():
                 cursor.close()
                 conn.close()
 
-            return jsonify({"message": "Usuário cadastrado com sucesso", "codigo": codigo_usuario})
+            return jsonify({"message": "Usuário cadastrado com sucesso", "codigo": email})
         else:
             return jsonify({"message": "As senhas não correspondem"})
     @app.route("/login", methods=["POST"])
@@ -159,8 +159,8 @@ def criar_app():
         if senha != senha_decriptada:
             return jsonify({"message": "Usuário ou senha incorretos, tente novamente"})
 
-        session['usuario'] = usuario['codigo_usuario']
-        return jsonify({"message": "Login realizado com sucesso", "usuario": usuario['usuario'], "codigo": usuario['codigo_usuario']})
+        session['usuario'] = email
+        return jsonify({"message": "Login realizado com sucesso", "usuario": usuario['usuario'], "codigo": usuario['email']})
 
 
     @app.route('/session', methods=['GET'])
@@ -174,7 +174,7 @@ def criar_app():
     def listar_perfil():
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM usuarios WHERE codigo_usuario = %s", (session.get("usuario"),))
+        cursor.execute("SELECT * FROM usuarios WHERE email = %s", (session.get("usuario"),))
         perfil = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -222,13 +222,13 @@ def criar_app():
 
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT carrinho FROM usuarios WHERE codigo_usuario = %s", (usuario,))
+        cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario,))
         resultado = cursor.fetchone()
         carrinho = json.loads(resultado['carrinho']) if resultado else []
 
         carrinho.append(produto)
 
-        cursor.execute("UPDATE usuarios SET carrinho = %s WHERE codigo_usuario = %s", (json.dumps(carrinho), usuario))
+        cursor.execute("UPDATE usuarios SET carrinho = %s WHERE email = %s", (json.dumps(carrinho), usuario))
         conn.commit()
         cursor.close()
         conn.close()
@@ -241,7 +241,7 @@ def criar_app():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT carrinho FROM usuarios WHERE codigo_usuario = %s", (usuario,))
+        cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario,))
         resultado = cursor.fetchone()
         carrinho = json.loads(resultado['carrinho']) if resultado and resultado['carrinho'] else []
 
@@ -269,13 +269,13 @@ def criar_app():
 
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT carrinho FROM usuarios WHERE codigo_usuario = %s", (usuario,))
+        cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario,))
         resultado = cursor.fetchone()
         carrinho = json.loads(resultado['carrinho']) if resultado and resultado['carrinho'] else []
 
         carrinho = [item for item in carrinho if item != produto]
 
-        cursor.execute("UPDATE usuarios SET carrinho = %s WHERE codigo_usuario = %s", (json.dumps(carrinho), usuario))
+        cursor.execute("UPDATE usuarios SET carrinho = %s WHERE email = %s", (json.dumps(carrinho), usuario))
         conn.commit()
         cursor.close()
         conn.close()
@@ -292,7 +292,7 @@ def criar_app():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM usuarios WHERE codigo_usuario = %s", (usuario,))
+        cursor.execute("SELECT * FROM usuarios WHERE email = %s", (usuario,))
         user = cursor.fetchone()
         if not user:
             return jsonify({"message": "Usuário não encontrado"})
@@ -319,7 +319,7 @@ def criar_app():
             VALUES (%s, %s, %s, %s, %s, %s, %s)
         ''', (usuario, comprador, json.dumps(carrinho), total, json.dumps(endereco), user['telefone'], status))
 
-        cursor.execute("UPDATE usuarios SET historico = %s, carrinho = %s WHERE codigo_usuario = %s",
+        cursor.execute("UPDATE usuarios SET historico = %s, carrinho = %s WHERE email = %s",
                     (json.dumps(carrinho), json.dumps([]), usuario))
 
         conn.commit()
@@ -336,7 +336,7 @@ def criar_app():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM pedidos WHERE usuario = %s", (usuario,))
+        cursor.execute("SELECT * FROM pedidos WHERE email = %s", (usuario,))
         pedidos = cursor.fetchall()
         produtos_carrinho = []
 
@@ -440,7 +440,7 @@ def criar_app():
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute("UPDATE usuarios SET cep = %s, numero = %s , rua = %s, bairro = %s, cidade = %s, estado = %s, complemento = %s WHERE codigo_usuario = %s",
+            cursor.execute("UPDATE usuarios SET cep = %s, numero = %s , rua = %s, bairro = %s, cidade = %s, estado = %s, complemento = %s WHERE email = %s",
                 (cep,numero,rua,bairro,cidade,estado,complemento, session.get("usuario")))
             conn.commit()
         except Exception as e:
@@ -451,7 +451,7 @@ def criar_app():
             cursor.close()
             conn.close()
 
-        return jsonify({"message": "Usuário cadastrado com sucesso", "codigo": codigo_usuario})
+        return jsonify({"message": "Sucesso!"})
     @app.after_request
     def aplicar_cors_em_todas_respostas(response):
         response.headers.add("Access-Control-Allow-Origin", request.headers.get("Origin", "*"))
