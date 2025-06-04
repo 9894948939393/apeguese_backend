@@ -30,6 +30,7 @@ def criar_app():
         if imagem:
             nome_limpo = secure_filename(f"{nome.replace(' ', '')}_{codigo}.jpg")
             send_from_directory(app.config['UPLOAD_FOLDER'], nome_limpo)
+            imagem.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_limpo))
             return nome_limpo
         return ''
 
@@ -91,7 +92,7 @@ def criar_app():
 
 
 
-    def gerar_email():
+    def gerar_codigo():
         return ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=8))
 
 
@@ -112,15 +113,15 @@ def criar_app():
         if confirmarSenha == senha:
             senha_encriptada = encriptar_dados(senha)
             cpf_encriptado = encriptar_dados(cpf) if cpf else None
-            email = gerar_email()
+            codigo = gerar_codigo()
 
             conn = get_db_connection()
             cursor = conn.cursor()
             try:
                 cursor.execute('''
-                    INSERT INTO usuarios (usuario, email, senha, telefone, cpf, data_nascimento, email, historico, favoritos, carrinho, cep, numero, rua, bairro, cidade, estado, complemento)
+                    INSERT INTO usuarios (usuario, email, senha, telefone, cpf, data_nascimento, codigo_usuario, historico, favoritos, carrinho, cep, numero, rua, bairro, cidade, estado, complemento)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (usuario, email, senha_encriptada, telefone, cpf_encriptado, data_nascimento, email, "[]", "[]", "[]", "", "", "", "", "", "", "",))
+                ''', (usuario, email, senha_encriptada, telefone, cpf_encriptado, data_nascimento, codigo, "[]", "[]", "[]", "", "", "", "", "", "", "",))
                 conn.commit()
             except Exception as e:
                 conn.rollback()
@@ -142,7 +143,7 @@ def criar_app():
         if not (email and senha):
             return jsonify({"erro": "Email e senha são obrigatórios"}),400
 
-        if email == "clubraro65@gmail.com" and senha == "clubraro335555777777":
+        if email == os.getenv("ADMIN_EMAIL") and senha == os.getenv("ADMIN_PASSWORD"):
             return jsonify({"message": "admin", "usuario": "admin", "codigo": "admin", "role": "admin"})
 
         conn = get_db_connection()
@@ -454,10 +455,12 @@ def criar_app():
         return jsonify({"message": "Sucesso!"})
     @app.after_request
     def aplicar_cors_em_todas_respostas(response):
-        response.headers.add("Access-Control-Allow-Origin", request.headers.get("Origin", "*"))
-        response.headers.add("Access-Control-Allow-Credentials", "true")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
-        response.headers.add("Access-Control-Allow-Methods", "GET,POST,OPTIONS,PUT,DELETE")
+        origin = request.headers.get("Origin")
+        if origin in origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS,PUT,DELETE"
         return response
-    
-    return app
+        
+        return app
