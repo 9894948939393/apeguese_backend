@@ -161,7 +161,7 @@ def criar_app():
             return jsonify({"message": "Usuário ou senha incorretos, tente novamente"})
 
         session['usuario'] = email
-        return jsonify({"message": "Login realizado com sucesso", "usuario": usuario['usuario'], "codigo": usuario['email']})
+        return jsonify({"message": "Login realizado com sucesso", "usuario": usuario['usuario'], "codigo": usuario['email'],"sessao": session['usuario']})
 
 
     @app.route('/session', methods=['GET'])
