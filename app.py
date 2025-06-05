@@ -18,7 +18,6 @@ def criar_app():
 
     session_dir = os.path.join(os.getcwd(), 'flask_session')
     os.makedirs(session_dir, exist_ok=True)
-
     app.config.update(
         SECRET_KEY=os.getenv("SECRET_KEY"),
         SESSION_TYPE='filesystem',
@@ -48,6 +47,7 @@ def criar_app():
 )
 
     app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     def gerar_codigo_produto():
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -63,7 +63,6 @@ def criar_app():
     def salvar_imagem(imagem, codigo, nome):
         if imagem:
             nome_limpo = secure_filename(f"{nome.replace(' ', '')}_{codigo}.jpg")
-            send_from_directory(app.config['UPLOAD_FOLDER'], nome_limpo)
             imagem.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_limpo))
             return nome_limpo
         return ''
