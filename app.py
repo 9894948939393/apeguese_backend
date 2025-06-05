@@ -485,6 +485,6 @@ def criar_app():
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
             response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS,PUT,DELETE"
-            return response
+        return response
         
     return app
