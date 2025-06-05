@@ -268,7 +268,7 @@ def criar_app():
         for pid in carrinho:
             cursor.execute("SELECT * FROM produtos WHERE id = %s", (pid,))
             produto = cursor.fetchone()
-            if produto:
+            if produto["codigo"] in carrinho:
                 produtos_carrinho.append(produto)
                 valor_total += float(produto['preco'])
 
