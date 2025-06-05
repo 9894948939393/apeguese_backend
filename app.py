@@ -68,21 +68,6 @@ def criar_app():
             return nome_limpo
         return ''
 
-    def adicionar_item(nome, marca, cor, numeracao, genero, valor, descricao, imagem):
-        codigo = gerar_codigo_produto()
-        nome_imagem = salvar_imagem(imagem, codigo, nome)
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO produtos (nome, marca, cor, numeracao, genero, valor, descricao, imagem, codigo)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (nome, marca, cor, numeracao, genero, valor, descricao, nome_imagem, codigo))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return True
-
     def carregar_produtos():
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -430,10 +415,21 @@ def criar_app():
         valor = request.form.get("valor")
         imagem = request.files.get("imagem")
 
-        sucesso = adicionar_item(nome, marca, cor, numeracao, genero, valor, descricao, imagem)
-        if sucesso:
+        codigo = gerar_codigo_produto()
+        nome_imagem = salvar_imagem(imagem, codigo, nome)
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO produtos (nome, marca, cor, numeracao, genero, valor, descricao, imagem, codigo)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (nome, marca, cor, numeracao, genero, valor, descricao, nome_imagem, codigo))
+            conn.commit()
+            cursor.close()
+            conn.close()
             return jsonify({"message": "Produto adicionado com sucesso!"})
-        return jsonify({"message": "Erro ao adicionar produto."}), 500
+        except:
+            return jsonify({"message": "Erro ao adicionar produto."}), 500
 
     @app.route('/atualizar_preco', methods=['POST'])
     def atualizar_preco():
