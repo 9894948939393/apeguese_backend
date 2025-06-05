@@ -193,6 +193,7 @@ def criar_app():
         perfil = cursor.fetchone()
         cursor.close()
         conn.close()
+        app.logger.info(perfil)
         return jsonify({"perfil": perfil})
 
 
@@ -204,6 +205,7 @@ def criar_app():
         produtos = cursor.fetchall()
         cursor.close()
         conn.close()
+        app.logger.info(produtos)
         return jsonify({"produtos": produtos})
 
 
