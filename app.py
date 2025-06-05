@@ -402,8 +402,6 @@ def criar_app():
         return round(preco_total * (1 + margem), 2)
 
 
-    # ---------------------------------------------------------------------
-
     @app.route('/novo_produto', methods=['POST'])
     def adicionar_produto():
         nome = request.form.get('nome')
