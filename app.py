@@ -419,15 +419,15 @@ def criar_app():
 
     # ---------------------------------------------------------------------
 
-    @app.route('/adicionar_produto', methods=['POST'])
+    @app.route('/novo_produto', methods=['POST'])
     def adicionar_produto():
         nome = request.form.get('nome')
         marca = request.form.get("marca")
         cor = request.form.get("cor")
         numeracao = request.form.get("numeracao")
         genero = request.form.get("genero")
-        valor = request.form.get("valor")
         descricao = request.form.get("descricao")
+        valor = request.form.get("valor")
         imagem = request.files.get("imagem")
 
         sucesso = adicionar_item(nome, marca, cor, numeracao, genero, valor, descricao, imagem)
