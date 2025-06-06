@@ -283,7 +283,7 @@ def criar_app():
     def deletar_carrinho():
         produto = request.form.get("produto")
         usuario = session.get('usuario')
-
+        valor_total = 0 
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario,))
