@@ -329,7 +329,7 @@ def criar_app():
                 return jsonify({"message": "Erro ao interpretar o carrinho"}), 400
 
         if not isinstance(pedido, list):
-            return jsonify({"message": "Carrinho em formato inválido"}), 400
+            return jsonify({"message": "Carrinho em formato inválido"})
 
         if not usuario_email:
             return jsonify({"message": "Usuário não logado"}), 400
@@ -361,7 +361,7 @@ def criar_app():
         try:
             total = float(valor) + float(frete[0])
         except (TypeError, ValueError):
-            return jsonify({"message": "Erro ao calcular total"}), 400
+            return jsonify({"message": "Erro ao calcular total"})
 
         if not endereco:
             return jsonify({"message": "Endereco não encontrado"})
