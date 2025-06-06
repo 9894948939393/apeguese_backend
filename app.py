@@ -313,6 +313,67 @@ def criar_app():
             "produto":produto_carrinho
         })
 
+    @app.route('/ir_pedido', methods=['POST'])
+    def ir_pedido():
+        valor = session.get('valor')
+        pedido = session.get('carrinho')
+        usuario_email = session.get('usuario')
+
+        if not pedido:
+            return jsonify({"message": "Carrinho vazio"}), 400
+
+        if isinstance(pedido, str):
+            try:
+                pedido = ast.literal_eval(pedido)  # Converte string para lista
+            except Exception:
+                return jsonify({"message": "Erro ao interpretar o carrinho"}), 400
+
+        if not isinstance(pedido, list):
+            return jsonify({"message": "Carrinho em formato inválido"}), 400
+
+        if not usuario_email:
+            return jsonify({"message": "Usuário não logado"}), 400
+
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT cep, telefone, rua, numero
+            FROM usuarios
+            WHERE email = %s
+            """, (usuario_email,))
+        usuario = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        cep, telefone, rua, numero = usuario
+        endereco = (rua, numero)
+
+        if not cep:
+            return jsonify({"message": "Endereco não encontrado"}), 400
+
+        try:
+            frete =calcular_frete_sudeste_com_margem(cep, len(pedido) // 2)
+            if not frete or not isinstance(frete, (list, tuple)) or not frete[0]:
+                return jsonify({"message": "Erro no cálculo do frete"}), 400
+        except Exception as e:
+            return jsonify({"message": f"Erro ao calcular frete: {str(e)}"}), 500
+
+        try:
+            total = float(valor) + float(frete[0])
+        except (TypeError, ValueError):
+            return jsonify({"message": "Erro ao calcular total"}), 400
+
+        if not endereco:
+            return jsonify({"message": "Endereco não encontrado"}), 400
+
+        return jsonify({
+            "message": "Sucesso!",
+            "frete": frete[0],
+            "total": total,
+            "endereco": endereco,
+            "telefone": telefone
+        })
+
 
 
     @app.route('/finalizar_pedido', methods=['POST'])
