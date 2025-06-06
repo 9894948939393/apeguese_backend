@@ -320,7 +320,7 @@ def criar_app():
         usuario_email = session.get('usuario')
 
         if not pedido:
-            return jsonify({"message": "Carrinho vazio"}), 400
+            return jsonify({"message": "Carrinho vazio"})
 
         if isinstance(pedido, str):
             try:
