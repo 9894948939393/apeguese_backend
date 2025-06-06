@@ -270,7 +270,7 @@ def criar_app():
             produto = cursor.fetchone()
             if produto:
                 produtos_carrinho.append(produto)
-                valor_total += float(produto['preco'])
+                valor_total += float(produto['valor'])
 
         session['carrinho'] = carrinho
         session['valor'] = valor_total
@@ -291,12 +291,13 @@ def criar_app():
         carrinho = json.loads(resultado['carrinho']) if resultado and resultado['carrinho'] else []
 
         carrinho = [item for item in carrinho if item != produto]
-
+        valor_total += float(produto['valor'] for item in carrinho if item != produto)
+        session['valor'] = valor_total
         cursor.execute("UPDATE usuarios SET carrinho = %s WHERE email = %s", (json.dumps(carrinho), usuario))
         conn.commit()
         cursor.close()
         conn.close()
-        return jsonify({"message": "Produto excluído do carrinho com sucesso"})
+        return jsonify({"message": "Produto excluído do carrinho com sucesso","valor":valor_total})
 
 
     @app.route('/finalizar_pedido', methods=['POST'])
