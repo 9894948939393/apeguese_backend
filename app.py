@@ -349,7 +349,7 @@ def criar_app():
         endereco = (rua, numero)
 
         if not cep:
-            return jsonify({"message": "Endereco não encontrado"}), 400
+            return jsonify({"message": "Endereco não encontrado"})
 
         try:
             frete =calcular_frete_sudeste_com_margem(cep, len(pedido) // 2)
@@ -364,7 +364,7 @@ def criar_app():
             return jsonify({"message": "Erro ao calcular total"}), 400
 
         if not endereco:
-            return jsonify({"message": "Endereco não encontrado"}), 400
+            return jsonify({"message": "Endereco não encontrado"})
 
         return jsonify({
             "message": "Sucesso!",
