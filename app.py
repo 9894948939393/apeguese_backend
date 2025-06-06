@@ -281,23 +281,36 @@ def criar_app():
 
     @app.route('/deletar_carrinho', methods=['POST'])
     def deletar_carrinho():
-        produto = request.form.get("produto")
+        produto_id = request.form.get("produto")  # é uma string
         usuario = session.get('usuario')
-        valor_total = 0 
         conn = get_db_connection()
         cursor = conn.cursor()
+
         cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario,))
         resultado = cursor.fetchone()
         carrinho = json.loads(resultado['carrinho']) if resultado and resultado['carrinho'] else []
 
-        carrinho = [item for item in carrinho if item != produto]
-        valor_total += float(produto['valor'] for item in carrinho if item != produto)
-        session['valor'] = valor_total
+
+        carrinho = [item for item in carrinho if item != produto_id]
+
+        valor_total = 0
+        for pid in carrinho:
+            cursor.execute("SELECT preco FROM produtos WHERE id = %s", (pid,))
+            prod = cursor.fetchone()
+            if prod:
+                valor_total += float(prod['preco'])
         cursor.execute("UPDATE usuarios SET carrinho = %s WHERE email = %s", (json.dumps(carrinho), usuario))
         conn.commit()
+        session['valor'] = valor_total
+
         cursor.close()
         conn.close()
-        return jsonify({"message": "Produto excluído do carrinho com sucesso","valor":valor_total})
+
+        return jsonify({
+            "message": "Produto excluído do carrinho com sucesso",
+            "valor": valor_total
+        })
+
 
 
     @app.route('/finalizar_pedido', methods=['POST'])
