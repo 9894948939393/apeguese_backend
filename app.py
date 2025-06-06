@@ -292,23 +292,25 @@ def criar_app():
 
 
         carrinho = [item for item in carrinho if item != produto_id]
-
+        produto_carrinho = []
         valor_total = 0
         for pid in carrinho:
-            cursor.execute("SELECT preco FROM produtos WHERE id = %s", (pid,))
+            cursor.execute("SELECT preco FROM produtos WHERE codigo = %s", (pid,))
             prod = cursor.fetchone()
             if prod:
                 valor_total += float(prod['preco'])
+                produto_carrinho.append(prod)
         cursor.execute("UPDATE usuarios SET carrinho = %s WHERE email = %s", (json.dumps(carrinho), usuario))
         conn.commit()
         session['valor'] = valor_total
-
+        session["carrinho"] = produto_carrinho
         cursor.close()
         conn.close()
 
         return jsonify({
             "message": "Produto excluído do carrinho com sucesso",
-            "valor": valor_total
+            "valor": valor_total,
+            "produto":produto_carrinho
         })
 
 
