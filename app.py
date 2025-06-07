@@ -344,8 +344,7 @@ def criar_app():
     @app.route('/ir_pedido', methods=['POST'])
     @token_required
     def ir_pedido():
-        import ast 
-        valor = session.get('valor')
+        import ast
         usuario_email = request.decoded_token.get('email')
 
         if not usuario_email:
@@ -357,36 +356,54 @@ def criar_app():
         cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario_email,))
         carrinho_row = cursor.fetchone()
 
+        if not carrinho_row or not carrinho_row["carrinho"]:
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "Carrinho vazio"})
+
+        # Corrigir: Usar json.loads em vez de ast.literal_eval e recalcular o valor
+        try:
+            carrinho_produtos_codigos = json.loads(carrinho_row["carrinho"])
+        except json.JSONDecodeError:
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "Erro ao interpretar o carrinho"})
+
+        produtos_carrinho_detalhes = []
+        valor_total = 0
+        for codigo_produto in carrinho_produtos_codigos:
+            cursor.execute("SELECT valor FROM produtos WHERE codigo = %s", (codigo_produto,))
+            produto_detalhe = cursor.fetchone()
+            if produto_detalhe:
+                produtos_carrinho_detalhes.append(produto_detalhe)
+                valor_total += float(produto_detalhe['valor'])
+
+        # ATUALIZAR a sessão com o valor recalculado
+        session['valor'] = valor_total 
+        valor = valor_total # Usar o valor recalculado
+
         cursor.execute("""
             SELECT cep, telefone, rua, numero
             FROM usuarios
             WHERE email = %s
         """, (usuario_email,))
-        usuario = cursor.fetchone()
+        usuario_dados = cursor.fetchone() # Renomeado para evitar conflito com 'usuario' anterior
+
         cursor.close()
         conn.close()
 
-        if not carrinho_row or not carrinho_row["carrinho"]:
-            return jsonify({"message": "Carrinho vazio"})
-
-        if not usuario:
+        if not usuario_dados:
             return jsonify({"message": "Usuário não encontrado"})
 
-        cep, telefone, rua, numero = usuario
+        # Corrigir: Acessar dados por chave se o cursor retornar dict-like
+        cep = usuario_dados['cep']
+        telefone = usuario_dados['telefone']
+        rua = usuario_dados['rua']
+        numero = usuario_dados['numero']
 
-        pedido = carrinho_row["carrinho"]
-        if isinstance(pedido, str):
-            try:
-                pedido = ast.literal_eval(pedido)
-            except Exception:
-                return jsonify({"message": "Erro ao interpretar o carrinho"})
+        # ... (restante da lógica do frete e total)
+        frete = calcular_frete_sudeste_com_margem(cep, len(carrinho_produtos_codigos) // 2)
 
-        if not isinstance(pedido, list):
-            return jsonify({"message": "Carrinho em formato inválido"})
-
-        frete = calcular_frete_sudeste_com_margem(cep, len(pedido) // 2)
-
-        
         total = float(valor) + float(frete)
 
         return jsonify({
@@ -403,20 +420,42 @@ def criar_app():
     @app.route('/finalizar_pedido', methods=['POST'])
     @token_required
     def finalizar_pedido():
-        valor = session.get('valor')
-        comprador = request.decoded_token.get('email')
-        usuario = session.get("usuario")
+        comprador_email = request.decoded_token.get('email') # Use email do token para o comprador
 
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario,))
-        deletar_carrinho
-        carrinho= cursor.fetchone()
-        cursor.execute("SELECT * FROM usuarios WHERE email = %s", (usuario,))
+
+        # Buscar dados do usuário (que é o comprador)
+        cursor.execute("SELECT * FROM usuarios WHERE email = %s", (comprador_email,))
         user = cursor.fetchone()
         if not user:
+            cursor.close()
+            conn.close()
             return jsonify({"message": "Usuário não encontrado"})
 
+        carrinho_str = user['carrinho'] # Obter a string do carrinho do usuário
+
+        if not carrinho_str: # Se o carrinho estiver vazio
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "Carrinho vazio. Não é possível finalizar o pedido."})
+
+        try:
+            carrinho_produtos_codigos = json.loads(carrinho_str)
+        except json.JSONDecodeError:
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "Erro ao interpretar o carrinho do usuário."})
+
+        # Recalcular o valor total com base nos produtos no carrinho
+        valor_total_produtos = 0
+        for codigo_produto in carrinho_produtos_codigos:
+            cursor.execute("SELECT valor FROM produtos WHERE codigo = %s", (codigo_produto,))
+            produto_detalhe = cursor.fetchone()
+            if produto_detalhe:
+                valor_total_produtos += float(produto_detalhe['valor'])
+
+        # Endereço
         endereco = {
             "cep": user['cep'],
             "numero": user['numero'],
@@ -427,86 +466,71 @@ def criar_app():
             "complemento": user['complemento'],
         }
 
-        frete = calcular_frete_sudeste_com_margem(user['cep'], len(carrinho) // 2)
+        frete = calcular_frete_sudeste_com_margem(user['cep'], len(carrinho_produtos_codigos) // 2)
         if frete is None:
+            cursor.close()
+            conn.close()
             return jsonify({"message": "CEP fora da região de entrega"})
 
-        total = float(valor) + frete
+        total_final_pedido = valor_total_produtos + frete
         status = "Aguardando verificação do pagamento"
 
         cursor.execute('''
             INSERT INTO pedidos (usuario, comprador, produtos, valor, endereco, telefone, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ''', (usuario, comprador, json.dumps(carrinho), total, json.dumps(endereco), user['telefone'], status))
+        ''', (user['usuario'], comprador_email, json.dumps(carrinho_produtos_codigos), total_final_pedido, json.dumps(endereco), user['telefone'], status))
 
+        # Limpar o carrinho e adicionar ao histórico
         cursor.execute("UPDATE usuarios SET historico = %s, carrinho = %s WHERE email = %s",
-                    (json.dumps(carrinho), json.dumps([]), usuario))
+                    (json.dumps(carrinho_produtos_codigos), json.dumps([]), comprador_email)) # Usar o carrinho do pedido para o histórico
 
         conn.commit()
         cursor.close()
         conn.close()
-        session.pop('carrinho', None)
-        session.pop('valor', None)
+        session.pop('carrinho', None) # Limpar session.carrinho
+        session.pop('valor', None) # Limpar session.valor
         return jsonify({"message": "Pedido realizado com sucesso!"})
 
 
     @app.route('/mostrar_pedidos', methods=['GET'])
     @token_required
     def mostrar_pedidos():
-        usuario = request.decoded_token.get('email')
+        usuario_email = request.decoded_token.get('email')
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM pedidos WHERE usuarios = %s", (usuario,))
+        cursor.execute("SELECT * FROM pedidos WHERE usuario = %s", (usuario_email,)) # Alterado de 'usuarios' para 'usuario' se for a coluna correta
         pedidos = cursor.fetchall()
-        produtos_carrinho = []
 
-        cursor.execute("SELECT * FROM produtos")
-        todos_produtos = cursor.fetchall()
+        # Otimização: Carregar todos os produtos em um dicionário para acesso rápido por código
+        cursor.execute("SELECT codigo, nome, valor, imagem FROM produtos") # Selecionar apenas o necessário
+        todos_produtos_dict = {p['codigo']: p for p in cursor.fetchall()}
+
+        pedidos_com_detalhes_produtos = []
+        valor_total_todos_pedidos = 0 # Valor total considerando todos os pedidos
 
         for pedido in pedidos:
-            carrinho = json.loads(pedido['produtos']) if pedido['produtos'] else []
-            for produto in todos_produtos:
-                if produto['codigo'] in carrinho:
-                    produtos_carrinho.append(produto)
+            carrinho_codigos = json.loads(pedido['produtos']) if pedido['produtos'] else []
+            produtos_do_pedido = []
+            valor_total_deste_pedido = 0
 
-        valor = sum(float(p['valor']) for p in pedidos)
+            for codigo_produto in carrinho_codigos:
+                if codigo_produto in todos_produtos_dict:
+                    produto_detalhe = todos_produtos_dict[codigo_produto]
+                    produtos_do_pedido.append(produto_detalhe)
+                    valor_total_deste_pedido += float(produto_detalhe['valor']) # Sum dos valores dos produtos
+
+            # Adicionar os produtos detalhados a cada pedido
+            pedido['produtos_detalhes'] = produtos_do_pedido
+            pedido['valor_produtos_total'] = valor_total_deste_pedido # Novo campo para o valor dos produtos deste pedido
+
+            pedidos_com_detalhes_produtos.append(pedido)
+            valor_total_todos_pedidos += float(pedido['valor']) # Soma do valor total de cada pedido (já inclui frete)
+
         cursor.close()
         conn.close()
-        return jsonify({"produto": produtos_carrinho, "valor": valor})
-
-
-    def calcular_frete_sudeste_com_margem(cep_destino, qtd_caixas):
-        cep_origem = "31340520"
-
-        def gerar_faixas_cep(inicio_str, fim_str):
-            return [str(i).zfill(3) for i in range(int(inicio_str), int(fim_str) + 1)]
-
-        sudeste_faixas = {
-            "SP": gerar_faixas_cep("010", "199"),
-            "RJ": gerar_faixas_cep("200", "289"),
-            "MG": gerar_faixas_cep("300", "399"),
-            "ES": gerar_faixas_cep("290", "299"),
-        }
-
-        precos_por_estado = {
-            "SP": 22.00,
-            "RJ": 20.00,
-            "MG": 18.00,
-            "ES": 25.00,
-        }
-
-        faixa_destino = str(cep_destino)[:3]
-        estado_destino = next((estado for estado, faixas in sudeste_faixas.items() if faixa_destino in faixas), None)
-        if not estado_destino:
-            return None
-
-        preco_base = precos_por_estado[estado_destino]
-        preco_total = preco_base * max(1, qtd_caixas)
-        margem = 0.30
-        return round(preco_total * (1 + margem), 2)
-
-
+    # Retorna a lista de pedidos, cada um com os detalhes dos produtos e o valor total dos produtos
+        return jsonify({"pedidos": pedidos_com_detalhes_produtos, "valor_total_pedidos": valor_total_todos_pedidos})
     @app.route('/novo_produto', methods=['POST'])
     def adicionar_produto():
         nome = request.form.get('nome')
