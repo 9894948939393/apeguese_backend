@@ -340,7 +340,7 @@ def criar_app():
         conn.close()
 
         # Verifica se o carrinho existe
-        if not carrinho_row or not carrinho_row[0]:
+        if not carrinho_row or not carrinho_row["carrinho"]:
             return jsonify({"message": "Carrinho vazio"})
 
         # Verifica se os dados do usuário foram encontrados
