@@ -209,14 +209,6 @@ def criar_app():
         return jsonify({"message": "Login realizado com sucesso", "usuario": usuario['usuario'], "codigo": usuario['email'],"sessao": token})
 
 
-    @app.route('/session', methods=['GET'])
-    @token_required
-    def listar_sessao():
-        sessao =request.decoded_token.get('email') if request.decoded_token.get('email') else "" 
-        app.logger.info(sessao)
-        return jsonify({"sessao": sessao})
-
-
     @app.route('/perfil', methods=['GET'])
     @token_required
     def listar_perfil():
