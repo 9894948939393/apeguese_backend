@@ -400,7 +400,7 @@ def criar_app():
         numero = usuario_dados['numero']
 
         frete = calcular_frete_sudeste_com_margem(cep, len(carrinho_produtos_codigos) // 2)
-
+        logging.info(f"Frete:{frete}")
         total = float(valor) + float(frete)
 
         return jsonify({
