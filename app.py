@@ -607,8 +607,8 @@ def criar_app():
     def atualizar_endereco():
         dados = request.form
         cep = dados.get("cep")
-        numero = dados.get("rua")
-        rua = dados.get("numero")
+        numero = dados.get("numero")
+        rua = dados.get("rua")
         bairro = dados.get("bairro")
         cidade = dados.get("cidade")
         estado = dados.get("estado")
@@ -617,12 +617,12 @@ def criar_app():
         cursor = conn.cursor()
         try:
             cursor.execute("UPDATE usuarios SET cep = %s, numero = %s , rua = %s, bairro = %s, cidade = %s, estado = %s, complemento = %s WHERE email = %s",
-                (cep,numero,rua,bairro,cidade,estado,complemento,request.decoded_token.get('email') ))
+                (cep,numero,rua,bairro,cidade,estado,complemento,request.decoded_token.get('email'), ))
             conn.commit()
         except Exception as e:
             conn.rollback()
             logging.error(f"Erro ao inserir usuário: {e}")
-            return jsonify({"erro": "Erro ao cadastrar usuário. Email pode estar duplicado."}),400
+            return jsonify({"erro": "Erro ao atualizar endereço"})
         finally:
             cursor.close()
             conn.close()
