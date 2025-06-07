@@ -602,7 +602,7 @@ def criar_app():
         conn.close()
         return jsonify({"message": "Produto deletado com sucesso"})
 
-    @app.route("/atualizar_endereco", methods=["POST"])
+    @app.route("/alterar_endereco", methods=["POST"])
     @token_required
     def atualizar_endereco():
         dados = request.form
