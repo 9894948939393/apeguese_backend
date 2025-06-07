@@ -417,6 +417,7 @@ def criar_app():
     @app.route('/finalizar_pedido', methods=['POST'])
     @token_required
     def finalizar_pedido():
+        comprador = request.form.get("comprador")  
         comprador_email = request.decoded_token.get('email')
 
         conn = get_db_connection()
@@ -473,7 +474,7 @@ def criar_app():
         cursor.execute('''
             INSERT INTO pedidos (usuario, comprador, produtos, valor, endereco, telefone, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ''', (user['usuario'], comprador_email, json.dumps(carrinho_produtos_codigos), total_final_pedido, json.dumps(endereco), user['telefone'], status,))
+        ''', (comprador_email, comprador, json.dumps(carrinho_produtos_codigos), total_final_pedido, json.dumps(endereco), user['telefone'], status,))
 
         cursor.execute("UPDATE usuarios SET historico = %s, carrinho = %s WHERE email = %s",
                     (json.dumps(carrinho_produtos_codigos), json.dumps([]), comprador_email,)) 
@@ -493,7 +494,7 @@ def criar_app():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM pedidos WHERE usuario = %s", (usuario_email,))
+        cursor.execute("SELECT * FROM pedidos WHERE email = %s", (usuario_email,))
         pedidos = cursor.fetchall()
 
         cursor.execute("SELECT codigo, nome, valor, imagem FROM produtos")
