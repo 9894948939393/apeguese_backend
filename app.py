@@ -315,7 +315,7 @@ def criar_app():
 
     @app.route('/ir_pedido', methods=['POST'])
     def ir_pedido():
-        import ast  # Se precisar para processar carrinho
+        import ast 
         valor = session.get('valor')
         usuario_email = session.get('usuario')
 
@@ -325,11 +325,9 @@ def criar_app():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Buscar carrinho
         cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario_email,))
         carrinho_row = cursor.fetchone()
 
-        # Buscar dados do usuário
         cursor.execute("""
             SELECT cep, telefone, rua, numero
             FROM usuarios
@@ -339,19 +337,14 @@ def criar_app():
         cursor.close()
         conn.close()
 
-        # Verifica se o carrinho existe
         if not carrinho_row or not carrinho_row["carrinho"]:
             return jsonify({"message": "Carrinho vazio"})
 
-        # Verifica se os dados do usuário foram encontrados
         if not usuario:
             return jsonify({"message": "Usuário não encontrado"})
 
-        # Desempacota os dados
         cep, telefone, rua, numero = usuario
-        endereco = (rua, numero)
 
-        # Converte carrinho string para lista, se necessário
         pedido = carrinho_row["carrinho"]
         if isinstance(pedido, str):
             try:
@@ -365,13 +358,13 @@ def criar_app():
         frete = calcular_frete_sudeste_com_margem(cep, len(pedido) // 2)
 
         try:
-            total = float(valor) + float(frete[0])
+            total = float(valor) + float(frete)
         except (TypeError, ValueError):
             return jsonify({"message": "Erro ao calcular total"})
 
         return jsonify({
             "message": "Sucesso!",
-            "frete": frete[0],
+            "frete": frete,
             "total": total,
             "endereco": {
                 "rua": rua,
