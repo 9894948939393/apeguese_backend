@@ -357,10 +357,8 @@ def criar_app():
 
         frete = calcular_frete_sudeste_com_margem(cep, len(pedido) // 2)
 
-        try:
-            total = float(valor) + float(frete)
-        except (TypeError, ValueError):
-            return jsonify({"message": "Erro ao calcular total"})
+        
+        total = float(valor) + float(frete)
 
         return jsonify({
             "message": "Sucesso!",
