@@ -186,7 +186,7 @@ def criar_app():
         senha = dados.get("senha")
 
         if not (email and senha):
-            return jsonify({"erro": "Email e senha são obrigatórios"}),400
+            return jsonify({"erro": "Email e senha são obrigatórios"})
 
         if email == os.getenv("ADMIN_EMAIL") and senha == os.getenv("ADMIN_PASSWORD"):
             return jsonify({"message": "admin", "usuario": "admin", "codigo": "admin", "role": "admin"})
