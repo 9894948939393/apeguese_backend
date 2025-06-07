@@ -473,10 +473,10 @@ def criar_app():
         cursor.execute('''
             INSERT INTO pedidos (usuario, comprador, produtos, valor, endereco, telefone, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ''', (user['usuario'], comprador_email, json.dumps(carrinho_produtos_codigos), total_final_pedido, json.dumps(endereco), user['telefone'], status))
+        ''', (user['usuario'], comprador_email, json.dumps(carrinho_produtos_codigos), total_final_pedido, json.dumps(endereco), user['telefone'], status,))
 
         cursor.execute("UPDATE usuarios SET historico = %s, carrinho = %s WHERE email = %s",
-                    (json.dumps(carrinho_produtos_codigos), json.dumps([]), comprador_email)) 
+                    (json.dumps(carrinho_produtos_codigos), json.dumps([]), comprador_email,)) 
 
         conn.commit()
         cursor.close()
@@ -582,7 +582,7 @@ def criar_app():
         preco = request.form.get("preco")
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("UPDATE produtos SET valor = %s WHERE nome = %s", (preco, produto))
+        cursor.execute("UPDATE produtos SET valor = %s WHERE nome = %s", (preco, produto,))
         conn.commit()
         cursor.close()
         conn.close()
