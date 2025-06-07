@@ -494,7 +494,7 @@ def criar_app():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM pedidos WHERE email = %s", (usuario_email,))
+        cursor.execute("SELECT * FROM pedidos WHERE usuario = %s", (usuario_email,))
         pedidos = cursor.fetchall()
 
         cursor.execute("SELECT codigo, nome, valor, imagem FROM produtos")
