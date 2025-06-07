@@ -212,7 +212,7 @@ def criar_app():
     @app.route('/session', methods=['GET'])
     @token_required
     def listar_sessao():
-        sessao = request.decoded_token.get('email')
+        sessao =request.decoded_token.get('email') if request.decoded_token.get('email') else "" 
         app.logger.info(sessao)
         return jsonify({"sessao": sessao})
 
