@@ -336,14 +336,6 @@ def criar_app():
         if not pedido:
             return jsonify({"message": "Carrinho vazio"})
 
-        if isinstance(pedido, str):
-            try:
-                pedido = ast.literal_eval(pedido)  # Converte string para lista
-            except Exception:
-                return jsonify({"message": "Erro ao interpretar o carrinho"})
-
-        if not isinstance(pedido, list):
-            return jsonify({"message": "Carrinho em formato inválido"})
 
         if not usuario_email:
             return jsonify({"message": "Usuário não logado"})
