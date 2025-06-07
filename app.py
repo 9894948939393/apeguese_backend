@@ -352,7 +352,7 @@ def criar_app():
         endereco = (rua, numero)
 
         # Converte carrinho string para lista, se necessário
-        pedido = carrinho_row[0]
+        pedido = carrinho_row["carrinho"]
         if isinstance(pedido, str):
             try:
                 pedido = ast.literal_eval(pedido)
