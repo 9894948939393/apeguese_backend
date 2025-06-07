@@ -399,6 +399,9 @@ def criar_app():
         rua = usuario_dados['rua']
         numero = usuario_dados['numero']
 
+        if not cep or not rua or not numero:
+            return jsonify({"message": "Endereço não encontrado"})
+
         frete = calcular_frete_sudeste_com_margem(cep, len(carrinho_produtos_codigos) // 2)
         logging.info(f"Frete:{frete}")
         total = float(valor) + float(frete)
