@@ -320,7 +320,7 @@ def criar_app():
         usuario_email = session.get('usuario')
 
         if not usuario_email:
-            return jsonify({"message": "Usuário não logado"}), 400
+            return jsonify({"message": "Usuário não logado"})
 
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -341,11 +341,11 @@ def criar_app():
 
         # Verifica se o carrinho existe
         if not carrinho_row or not carrinho_row[0]:
-            return jsonify({"message": "Carrinho vazio"}), 400
+            return jsonify({"message": "Carrinho vazio"})
 
         # Verifica se os dados do usuário foram encontrados
         if not usuario:
-            return jsonify({"message": "Usuário não encontrado"}), 400
+            return jsonify({"message": "Usuário não encontrado"})
 
         # Desempacota os dados
         cep, telefone, rua, numero = usuario
@@ -357,22 +357,22 @@ def criar_app():
             try:
                 pedido = ast.literal_eval(pedido)
             except Exception:
-                return jsonify({"message": "Erro ao interpretar o carrinho"}), 400
+                return jsonify({"message": "Erro ao interpretar o carrinho"})
 
         if not isinstance(pedido, list):
-            return jsonify({"message": "Carrinho em formato inválido"}), 400
+            return jsonify({"message": "Carrinho em formato inválido"})
 
         try:
             frete = calcular_frete_sudeste_com_margem(cep, len(pedido) // 2)
             if not isinstance(frete, (list, tuple)) or not frete or not frete[0]:
-                return jsonify({"message": "Erro no cálculo do frete"}), 400
+                return jsonify({"message": "Erro no cálculo do frete"})
         except Exception as e:
-            return jsonify({"message": f"Erro ao calcular frete: {str(e)}"}), 500
+            return jsonify({"message": f"Erro ao calcular frete: {str(e)}"})
 
         try:
             total = float(valor) + float(frete[0])
         except (TypeError, ValueError):
-            return jsonify({"message": "Erro ao calcular total"}), 400
+            return jsonify({"message": "Erro ao calcular total"})
 
         return jsonify({
             "message": "Sucesso!",
