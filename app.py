@@ -3,19 +3,22 @@ import json
 import ast
 import logging
 import random
-import logging
-from flask_session import Session
 from flask import Flask, request, jsonify, session,send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from db import get_db_connection, criar_tabelas
 from security import encriptar_dados, decriptar_dados
 from werkzeug.utils import secure_filename
+import jwt
+from flask_session import Session
+from functools import wraps
+import datetime
 load_dotenv()
 
 def criar_app():
     app = Flask(__name__)
-
+    
+    SECRET_KEY = os.getenv("SECRET_KEY")
     session_dir = os.path.join(os.getcwd(), 'flask_session')
     os.makedirs(session_dir, exist_ok=True)
     app.config.update(
@@ -31,20 +34,6 @@ def criar_app():
     )
 
     Session(app)
-
-    logging.basicConfig(level=logging.INFO)
-
-    origins = list(filter(None, [
-        os.getenv("FRONTEND_URL"),
-        os.getenv("FRONTEND_URL2"),
-        os.getenv("FRONTEND_URL3")
-    ]))
-    CORS(app, origins=origins, supports_credentials=True)
-
-    logging.basicConfig(
-    level=logging.DEBUG,  # ou DEBUG para mais detalhes
-    format='%(asctime)s [%(levelname)s] %(message)s'
-)
 
     app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -95,6 +84,47 @@ def criar_app():
         conn.close()
         return dados
     
+    def generate_token(email):
+        payload = {
+            'email': email,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+        }
+        return jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+
+    # Decorador para proteger rotas
+    def token_required(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            token = None
+            if 'Authorization' in request.headers:
+                auth_header = request.headers['Authorization']
+                if auth_header.startswith('Bearer '):
+                    token = auth_header.split(' ')[1]
+            if not token:
+                return jsonify({'message': 'Token ausente'}), 401
+            try:
+                data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+                request.email = data['email']
+            except jwt.ExpiredSignatureError:
+                return jsonify({'message': 'Token expirado'}), 401
+            except jwt.InvalidTokenError:
+                return jsonify({'message': 'Token inválido'}), 401
+            return f(*args, **kwargs)
+        return decorated
+
+    logging.basicConfig(level=logging.INFO)
+
+    origins = list(filter(None, [
+        os.getenv("FRONTEND_URL"),
+        os.getenv("FRONTEND_URL2"),
+        os.getenv("FRONTEND_URL3")
+        ]))
+    CORS(app, origins=origins, supports_credentials=True)
+
+    logging.basicConfig(
+        level=logging.DEBUG,  # ou DEBUG para mais detalhes
+        format='%(asctime)s [%(levelname)s] %(message)s'
+    )
 
     @app.route("/init-db")
     def init_db():
@@ -174,22 +204,24 @@ def criar_app():
         if senha != senha_decriptada:
             return jsonify({"message": "Usuário ou senha incorretos, tente novamente"})
 
-        session['usuario'] = email
-        return jsonify({"message": "Login realizado com sucesso", "usuario": usuario['usuario'], "codigo": usuario['email'],"sessao": session['usuario']})
+        token = generate_token(email)
+        return jsonify({"message": "Login realizado com sucesso", "usuario": usuario['usuario'], "codigo": usuario['email'],"sessao": token})
 
 
     @app.route('/session', methods=['GET'])
+    @token_required
     def listar_sessao():
-        sessao = session.get("usuario")
+        sessao = request.email
         app.logger.info(sessao)
         return jsonify({"sessao": sessao})
 
 
     @app.route('/perfil', methods=['GET'])
+    @token_required
     def listar_perfil():
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM usuarios WHERE email = %s", (session.get("usuario"),))
+        cursor.execute("SELECT * FROM usuarios WHERE email = %s", (request.email,))
         perfil = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -233,9 +265,10 @@ def criar_app():
 
 
     @app.route('/adicionar_carrinho', methods=['POST'])
+    @token_required
     def adicionar_carrinho():
         produto = request.form.get("produto")
-        usuario = session.get("usuario")
+        usuario = request.email
 
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -253,8 +286,9 @@ def criar_app():
 
 
     @app.route('/mostrar_carrinho', methods=['GET'])
+    @token_required
     def mostrar_carrinho():
-        usuario = session.get('usuario')
+        usuario = request.email
         conn = get_db_connection()
         cursor = conn.cursor()
 
@@ -280,9 +314,10 @@ def criar_app():
 
 
     @app.route('/deletar_carrinho', methods=['POST'])
+    @token_required
     def deletar_carrinho():
         produto_id = request.form.get("produto")  # é uma string
-        usuario = session.get('usuario')
+        usuario = request.email
         conn = get_db_connection()
         cursor = conn.cursor()
 
@@ -314,10 +349,11 @@ def criar_app():
         })
 
     @app.route('/ir_pedido', methods=['POST'])
+    @token_required
     def ir_pedido():
         import ast 
         valor = session.get('valor')
-        usuario_email = session.get('usuario')
+        usuario_email = request.email
 
         if not usuario_email:
             return jsonify({"message": "Usuário não logado"})
@@ -372,9 +408,10 @@ def criar_app():
         })
 
     @app.route('/finalizar_pedido', methods=['POST'])
+    @token_required
     def finalizar_pedido():
         valor = session.get('valor')
-        comprador = request.form.get("comprador")
+        comprador = request.email
         usuario = session.get("usuario")
 
         conn = get_db_connection()
@@ -421,8 +458,9 @@ def criar_app():
 
 
     @app.route('/mostrar_pedidos', methods=['GET'])
+    @token_required
     def mostrar_pedidos():
-        usuario = session.get('usuario')
+        usuario = request.email
         conn = get_db_connection()
         cursor = conn.cursor()
 
@@ -527,6 +565,7 @@ def criar_app():
         return jsonify({"message": "Produto deletado com sucesso"})
 
     @app.route("/atualizar_endereco", methods=["POST"])
+    @token_required
     def atualizar_endereco():
         dados = request.form
         cep = dados.get("cep")
