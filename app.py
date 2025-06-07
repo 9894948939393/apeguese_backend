@@ -316,8 +316,22 @@ def criar_app():
     @app.route('/ir_pedido', methods=['POST'])
     def ir_pedido():
         valor = session.get('valor')
-        pedido = session.get('carrinho')
         usuario_email = session.get('usuario')
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario_email,))
+        pedido = cursor.fetchone()
+        cursor.execute("""
+            SELECT cep, telefone, rua, numero
+            FROM usuarios
+            WHERE email = %s
+            """, (usuario_email,))
+        usuario = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        cep, telefone, rua, numero = usuario
+        endereco = (rua, numero)
 
         if not pedido:
             return jsonify({"message": "Carrinho vazio"})
@@ -334,19 +348,6 @@ def criar_app():
         if not usuario_email:
             return jsonify({"message": "Usuário não logado"})
 
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT cep, telefone, rua, numero
-            FROM usuarios
-            WHERE email = %s
-            """, (usuario_email,))
-        usuario = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        cep, telefone, rua, numero = usuario
-        endereco = (rua, numero)
 
         if not cep:
             return jsonify({"message": "Endereco não encontrado"})
@@ -379,13 +380,14 @@ def criar_app():
     @app.route('/finalizar_pedido', methods=['POST'])
     def finalizar_pedido():
         valor = session.get('valor')
-        carrinho = session.get('carrinho')
         comprador = request.form.get("comprador")
         usuario = session.get("usuario")
 
         conn = get_db_connection()
         cursor = conn.cursor()
-
+        cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario,))
+        deletar_carrinho
+        carrinho= cursor.fetchone()
         cursor.execute("SELECT * FROM usuarios WHERE email = %s", (usuario,))
         user = cursor.fetchone()
         if not user:
