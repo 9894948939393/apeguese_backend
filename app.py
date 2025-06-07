@@ -93,24 +93,25 @@ def criar_app():
 
     # Decorador para proteger rotas
     def token_required(f):
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            token = None
-            if 'Authorization' in request.headers:
-                auth_header = request.headers['Authorization']
-                if auth_header.startswith('Bearer '):
-                    token = auth_header.split(' ')[1]
-            if not token:
-                return jsonify({'message': 'Token ausente'}), 401
-            try:
-                data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-                request.email = data['email']
-            except jwt.ExpiredSignatureError:
-                return jsonify({'message': 'Token expirado'}), 401
-            except jwt.InvalidTokenError:
-                return jsonify({'message': 'Token inválido'}), 401
-            return f(*args, **kwargs)
-        return decorated
+            @wraps(f)
+            def decorated(*args, **kwargs):
+                token = request.headers.get('Authorization')
+
+                if not token:
+                    return jsonify({'message': 'Token ausente'}), 401
+
+                try:
+                    token = token.replace("Bearer ", "")
+                    decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+                    request.decoded_token = decoded  # ⬅ salvando no objeto request
+                except jwt.ExpiredSignatureError:
+                    return jsonify({'message': 'Token expirado'}), 401
+                except jwt.InvalidTokenError:
+                    return jsonify({'message': 'Token inválido'}), 401
+
+                return f(*args, **kwargs)
+
+            return decorated
 
     logging.basicConfig(level=logging.INFO)
 
@@ -211,7 +212,7 @@ def criar_app():
     @app.route('/session', methods=['GET'])
     @token_required
     def listar_sessao():
-        sessao = request.email
+        sessao = request.decoded_token.get('email')
         app.logger.info(sessao)
         return jsonify({"sessao": sessao})
 
@@ -221,7 +222,7 @@ def criar_app():
     def listar_perfil():
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM usuarios WHERE email = %s", (request.email,))
+        cursor.execute("SELECT * FROM usuarios WHERE email = %s", (request.decoded_token.get('email'),))
         perfil = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -268,7 +269,7 @@ def criar_app():
     @token_required
     def adicionar_carrinho():
         produto = request.form.get("produto")
-        usuario = request.email
+        usuario = request.decoded_token.get('email')
 
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -288,7 +289,7 @@ def criar_app():
     @app.route('/mostrar_carrinho', methods=['GET'])
     @token_required
     def mostrar_carrinho():
-        usuario = request.email
+        usuario = request.decoded_token.get('email')
         conn = get_db_connection()
         cursor = conn.cursor()
 
@@ -317,7 +318,7 @@ def criar_app():
     @token_required
     def deletar_carrinho():
         produto_id = request.form.get("produto")  # é uma string
-        usuario = request.email
+        usuario = request.decoded_token.get('email')
         conn = get_db_connection()
         cursor = conn.cursor()
 
@@ -353,7 +354,7 @@ def criar_app():
     def ir_pedido():
         import ast 
         valor = session.get('valor')
-        usuario_email = request.email
+        usuario_email = request.decoded_token.get('email')
 
         if not usuario_email:
             return jsonify({"message": "Usuário não logado"})
@@ -411,7 +412,7 @@ def criar_app():
     @token_required
     def finalizar_pedido():
         valor = session.get('valor')
-        comprador = request.email
+        comprador = request.decoded_token.get('email')
         usuario = session.get("usuario")
 
         conn = get_db_connection()
@@ -460,7 +461,7 @@ def criar_app():
     @app.route('/mostrar_pedidos', methods=['GET'])
     @token_required
     def mostrar_pedidos():
-        usuario = request.email
+        usuario = request.decoded_token.get('email')
         conn = get_db_connection()
         cursor = conn.cursor()
 
