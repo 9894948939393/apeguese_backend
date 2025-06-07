@@ -362,12 +362,7 @@ def criar_app():
         if not isinstance(pedido, list):
             return jsonify({"message": "Carrinho em formato inválido"})
 
-        try:
-            frete = calcular_frete_sudeste_com_margem(cep, len(pedido) // 2)
-            if not isinstance(frete, (list, tuple)) or not frete or not frete[0]:
-                return jsonify({"message": "Erro no cálculo do frete"})
-        except Exception as e:
-            return jsonify({"message": f"Erro ao calcular frete: {str(e)}"})
+        frete = calcular_frete_sudeste_com_margem(cep, len(pedido) // 2)
 
         try:
             total = float(valor) + float(frete[0])
