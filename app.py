@@ -410,10 +410,7 @@ def criar_app():
             "message": "Sucesso!",
             "frete": frete,
             "total": total,
-            "endereco": {
-                "rua": rua,
-                "numero": numero
-            },
+            "endereco": f"{rua},{numero}",
             "telefone": telefone
         })
 
