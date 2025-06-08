@@ -13,6 +13,7 @@ import jwt
 from flask_session import Session
 from functools import wraps
 import datetime
+from decimal import Decimal
 load_dotenv()
 
 def criar_app():
