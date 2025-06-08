@@ -208,6 +208,15 @@ def criar_app():
         token = generate_token(email)
         return jsonify({"message": "Login realizado com sucesso", "usuario": usuario['usuario'], "codigo": usuario['email'],"sessao": token})
 
+    @app.route('/token', methods=['GET'])
+    @token_required
+    def listar_sessao():
+        sessao =request.decoded_token.get('email')
+        app.logger.info(sessao)
+        if sessao:
+            return jsonify({"message": "Sucesso"})
+        else: 
+            return jsonify({"message": ""})
 
     @app.route('/perfil', methods=['GET'])
     @token_required
@@ -522,7 +531,7 @@ def criar_app():
 
         cursor.close()
         conn.close()
-        return jsonify({"pedidos": pedidos_com_detalhes_produtos, "valor_total_pedidos": valor_total_todos_pedidos})
+        return jsonify({"message":"Sucesso","pedidos": pedidos_com_detalhes_produtos, "valor_total_pedidos": valor_total_todos_pedidos})
 
     def calcular_frete_sudeste_com_margem(cep_destino, qtd_caixas):
         cep_origem = "31340520"
