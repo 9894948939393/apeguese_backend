@@ -513,42 +513,92 @@ def criar_app():
         return jsonify({"message": "Pedido realizado com sucesso!"})
 
 
-    @app.route('/mostrar_pedidos', methods=['GET'])
-    @token_required
+    @token_required 
     def mostrar_pedidos():
+
         usuario_email = request.decoded_token.get('email')
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        conn = None
+        cursor = None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM pedidos WHERE usuario = %s", (usuario_email,))
-        pedidos = cursor.fetchall()
+            cursor.execute("SELECT * FROM pedidos WHERE usuario = %s", (usuario_email,))
+            pedidos_raw = cursor.fetchall()
 
-        cursor.execute("SELECT codigo, nome, valor, imagem FROM produtos")
-        todos_produtos_dict = {p['codigo']: p for p in cursor.fetchall()}
+            all_product_codes_in_orders = set()
+            for pedido in pedidos_raw:
+                try:
+                    carrinho_codigos = json.loads(pedido.get('produtos', '[]'))
+                    if isinstance(carrinho_codigos, list):
+                        all_product_codes_in_orders.update(c for c in carrinho_codigos if isinstance(c, int))
+                    else:
+                        print(f"Aviso: 'produtos' para pedido {pedido.get('id')} não é uma lista JSON válida. Conteúdo: {pedido.get('produtos')}")
+                except (json.JSONDecodeError, TypeError):
+                    print(f"Erro ao decodificar JSON para o pedido {pedido.get('id')}. Conteúdo: {pedido.get('produtos')}. Ignorando produtos para este pedido.")
+                    pass
 
-        pedidos_com_detalhes_produtos = []
-        valor_total_todos_pedidos = 0 
+            todos_produtos_dict = {}
+            if all_product_codes_in_orders:
+                placeholders = ','.join(['%s'] * len(all_product_codes_in_orders))
+                query_produtos = f"SELECT codigo, nome, valor, imagem FROM produtos WHERE codigo IN ({placeholders})"
+                cursor.execute(query_produtos, tuple(all_product_codes_in_orders))
+                todos_produtos_dict = {p['codigo']: p for p in cursor.fetchall()}
 
-        for pedido in pedidos:
-            carrinho_codigos = json.loads(pedido['produtos']) if pedido['produtos'] else []
-            produtos_do_pedido = []
-            valor_total_deste_pedido = 0
+            pedidos_com_detalhes_produtos = []
+            valor_total_todos_pedidos = Decimal('0.00') 
 
-            for codigo_produto in carrinho_codigos:
-                if codigo_produto in todos_produtos_dict:
-                    produto_detalhe = todos_produtos_dict[codigo_produto]
-                    produtos_do_pedido.append(produto_detalhe)
-                    valor_total_deste_pedido += float(produto_detalhe['valor']) 
+            for pedido in pedidos_raw:
+                produtos_do_pedido = []
+                valor_total_deste_pedido_recalculado = Decimal('0.00') 
 
-            pedido['produtos_detalhes'] = produtos_do_pedido
-            pedido['valor_produtos_total'] = valor_total_deste_pedido 
+                try:
+                    carrinho_codigos = json.loads(pedido.get('produtos', '[]'))
+                    if not isinstance(carrinho_codigos, list):
+                        carrinho_codigos = [] 
+                except (json.JSONDecodeError, TypeError):
+                    carrinho_codigos = []
 
-            pedidos_com_detalhes_produtos.append(pedido)
-            valor_total_todos_pedidos += float(pedido['valor'])
+                for codigo_produto in carrinho_codigos:
+                    if isinstance(codigo_produto, int) and codigo_produto in todos_produtos_dict:
+                        produto_detalhe = todos_produtos_dict[codigo_produto]
+                        produtos_do_pedido.append({
+                            'codigo': produto_detalhe.get('codigo'),
+                            'nome': produto_detalhe.get('nome'),
+                            'valor': str(produto_detalhe.get('valor')), 
+                            'imagem': produto_detalhe.get('imagem')
+                        })
+                        valor_total_deste_pedido_recalculado += Decimal(produto_detalhe.get('valor', '0.00'))
+                    else:
+                        print(f"Aviso: Produto com código {codigo_produto} não encontrado ou inválido para o pedido {pedido.get('id')}. Ignorando.")
 
-        cursor.close()
-        conn.close()
-        return jsonify({"message":"Sucesso","pedidos": pedidos_com_detalhes_produtos, "valor_total_pedidos": valor_total_todos_pedidos})
+                pedido['produtos_detalhes'] = produtos_do_pedido
+                pedido['valor_produtos_total_recalculado'] = str(valor_total_deste_pedido_recalculado)
+
+                valor_total_todos_pedidos += Decimal(pedido.get('valor', '0.00')) 
+
+                for key, value in pedido.items():
+                    if isinstance(value, Decimal):
+                        pedido[key] = str(value)
+
+                pedidos_com_detalhes_produtos.append(pedido)
+
+
+            return jsonify({
+                "message": "Sucesso",
+                "pedidos": pedidos_com_detalhes_produtos,
+                "valor_total_todos_pedidos": str(valor_total_todos_pedidos) 
+            }), 200 
+
+        except Exception as e:
+            print(f"Erro inesperado ao mostrar pedidos para {usuario_email}: {e}")
+            return jsonify({"message": "Erro interno do servidor", "error": str(e)}), 500
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+                return jsonify({"message":"Sucesso","pedidos": pedidos_com_detalhes_produtos, "valor_total_pedidos": valor_total_todos_pedidos})
 
     def calcular_frete_sudeste_com_margem(cep_destino, qtd_caixas):
         cep_origem = "31340520"
