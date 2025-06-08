@@ -228,7 +228,7 @@ def criar_app():
     @optional_token
     def listar_sessao():
         email = request.decoded_token.get('email') if request.decoded_token else None
-        return jsonify({"email": email})
+        return jsonify({"message": "Sucesso","mail": email})
 
 
     @app.route('/perfil', methods=['GET'])
