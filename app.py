@@ -228,7 +228,10 @@ def criar_app():
     @optional_token
     def listar_sessao():
         email = request.decoded_token.get('email') if request.decoded_token else None
-        return jsonify({"message": "Sucesso","mail": email})
+        if email:
+            return jsonify({"message": "Sucesso","mail": email})
+        else: 
+            return jsonify({"message": ""})
 
 
     @app.route('/perfil', methods=['GET'])
@@ -439,7 +442,8 @@ def criar_app():
     @app.route('/finalizar_pedido', methods=['POST'])
     @token_required
     def finalizar_pedido():
-        comprador = request.form.get("comprador")  
+        dados = request.form
+        comprador= dados.get("comprador")
         comprador_email = request.decoded_token.get('email')
 
         conn = get_db_connection()
