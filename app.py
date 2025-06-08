@@ -196,7 +196,7 @@ def criar_app():
         return jsonify({"message": "Login realizado com sucesso", "usuario": usuario['usuario'], "codigo": usuario['email'],"sessao": token})
 
     @app.route('/token', methods=['GET'])
-    @token_required
+    @optional_token
     def listar_sessao():
         try:
             sessao = request.decoded_token.get('email') if request.decoded_token else None
@@ -205,7 +205,7 @@ def criar_app():
             return jsonify({})
 
     @app.route('/perfil', methods=['GET'])
-    @token_required
+    @optional_token
     def listar_perfil():
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -253,7 +253,7 @@ def criar_app():
 
 
     @app.route('/adicionar_carrinho', methods=['POST'])
-    @token_required
+    @optional_token
     def adicionar_carrinho():
         produto = request.form.get("produto")
         usuario = request.decoded_token.get('email')
@@ -274,7 +274,7 @@ def criar_app():
 
 
     @app.route('/mostrar_carrinho', methods=['GET'])
-    @token_required
+    @optional_token
     def mostrar_carrinho():
         usuario = request.decoded_token.get('email')
         conn = get_db_connection()
@@ -302,7 +302,7 @@ def criar_app():
 
 
     @app.route('/deletar_carrinho', methods=['POST'])
-    @token_required
+    @optional_token
     def deletar_carrinho():
         produto_id = request.form.get("produto")  
         usuario = request.decoded_token.get('email')
@@ -337,7 +337,7 @@ def criar_app():
         })
 
     @app.route('/ir_pedido', methods=['POST'])
-    @token_required
+    @optional_token
     def ir_pedido():
         import ast
         usuario_email = request.decoded_token.get('email')
@@ -410,7 +410,7 @@ def criar_app():
         })
 
     @app.route('/finalizar_pedido', methods=['POST'])
-    @token_required
+    @optional_token
     def finalizar_pedido():
         comprador = request.form.get("comprador")  
         comprador_email = request.decoded_token.get('email')
@@ -483,7 +483,7 @@ def criar_app():
 
 
     @app.route('/mostrar_pedidos', methods=['GET'])
-    @token_required
+    @optional_token
     def mostrar_pedidos():
         usuario_email = request.decoded_token.get('email')
         conn = get_db_connection()
@@ -596,7 +596,7 @@ def criar_app():
         return jsonify({"message": "Produto deletado com sucesso"})
 
     @app.route("/alterar_endereco", methods=["POST"])
-    @token_required
+    @optional_token
     def atualizar_endereco():
         dados = request.form
         cep = dados.get("cep")
