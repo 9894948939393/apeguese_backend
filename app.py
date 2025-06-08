@@ -511,8 +511,7 @@ def criar_app():
         session.pop('carrinho', None) 
         session.pop('valor', None)
         return jsonify({"message": "Pedido realizado com sucesso!"})
-
-
+    @app.route('/mostrar_pedidos', methods=['GET'])
     @token_required 
     def mostrar_pedidos():
 
