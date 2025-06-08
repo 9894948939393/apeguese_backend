@@ -91,6 +91,44 @@ def criar_app():
         }
         return jwt.encode(payload, SECRET_KEY, algorithm='HS256')
 
+    # Decorador para proteger rotas
+    def token_required(f):
+            @wraps(f)
+            def decorated(*args, **kwargs):
+                token = request.headers.get('Authorization')
+
+                if not token:
+                    return jsonify({'message': 'Token ausente'}), 401
+
+                try:
+                    token = token.replace("Bearer ", "")
+                    decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+                    request.decoded_token = decoded
+                except jwt.ExpiredSignatureError:
+                    return jsonify({'message': 'Token expirado'}), 401
+                except jwt.InvalidTokenError:
+                    return jsonify({'message': 'Token inválido'}), 401
+
+                return f(*args, **kwargs)
+
+            return decorated
+    def optional_token(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            request.decoded_token = None
+            auth_header = request.headers.get('Authorization')
+            if auth_header and auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
+                try:
+                    decoded_token = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+                    request.decoded_token = decoded_token
+                except jwt.ExpiredSignatureError:
+                    pass
+                except jwt.InvalidTokenError:
+                    pass
+            return f(*args, **kwargs)
+        return decorated
+
     logging.basicConfig(level=logging.INFO)
 
     origins = list(filter(None, [
@@ -105,29 +143,6 @@ def criar_app():
         format='%(asctime)s [%(levelname)s] %(message)s'
     )
 
-    # Decorador para proteger rotas
-    def optional_token(f):
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            token = None
-            request.decoded_token = None
-
-            auth_header = request.headers.get('Authorization')
-            if auth_header and auth_header.startswith("Bearer "):
-                token = auth_header.split(" ")[1]
-
-            if token:
-                try:
-                    decoded_token = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-                    request.decoded_token = decoded_token
-                except jwt.ExpiredSignatureError:
-                    pass  # Ignora token inválido
-                except jwt.InvalidTokenError:
-                    pass
-
-            return f(*args, **kwargs)
-        return decorated
-
     @app.route("/init-db")
     def init_db():
         try:
@@ -140,6 +155,8 @@ def criar_app():
 
     def gerar_codigo():
         return ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=8))
+
+
 
 
     @app.route("/cadastro", methods=["POST"])
@@ -210,14 +227,12 @@ def criar_app():
     @app.route('/token', methods=['GET'])
     @optional_token
     def listar_sessao():
-        try:
-            sessao = request.decoded_token.get('email') if request.decoded_token else None
-            return jsonify({"message": "Sucesso", "email": sessao})
-        except Exception:
-            return jsonify({})
+        email = request.decoded_token.get('email') if request.decoded_token else None
+        return jsonify({"email": email})
+
 
     @app.route('/perfil', methods=['GET'])
-    @optional_token
+    @token_required
     def listar_perfil():
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -265,7 +280,7 @@ def criar_app():
 
 
     @app.route('/adicionar_carrinho', methods=['POST'])
-    @optional_token
+    @token_required
     def adicionar_carrinho():
         produto = request.form.get("produto")
         usuario = request.decoded_token.get('email')
@@ -286,7 +301,7 @@ def criar_app():
 
 
     @app.route('/mostrar_carrinho', methods=['GET'])
-    @optional_token
+    @token_required
     def mostrar_carrinho():
         usuario = request.decoded_token.get('email')
         conn = get_db_connection()
@@ -314,7 +329,7 @@ def criar_app():
 
 
     @app.route('/deletar_carrinho', methods=['POST'])
-    @optional_token
+    @token_required
     def deletar_carrinho():
         produto_id = request.form.get("produto")  
         usuario = request.decoded_token.get('email')
@@ -349,7 +364,7 @@ def criar_app():
         })
 
     @app.route('/ir_pedido', methods=['POST'])
-    @optional_token
+    @token_required
     def ir_pedido():
         import ast
         usuario_email = request.decoded_token.get('email')
@@ -422,7 +437,7 @@ def criar_app():
         })
 
     @app.route('/finalizar_pedido', methods=['POST'])
-    @optional_token
+    @token_required
     def finalizar_pedido():
         comprador = request.form.get("comprador")  
         comprador_email = request.decoded_token.get('email')
@@ -495,7 +510,7 @@ def criar_app():
 
 
     @app.route('/mostrar_pedidos', methods=['GET'])
-    @optional_token
+    @token_required
     def mostrar_pedidos():
         usuario_email = request.decoded_token.get('email')
         conn = get_db_connection()
@@ -608,7 +623,7 @@ def criar_app():
         return jsonify({"message": "Produto deletado com sucesso"})
 
     @app.route("/alterar_endereco", methods=["POST"])
-    @optional_token
+    @token_required
     def atualizar_endereco():
         dados = request.form
         cep = dados.get("cep")
