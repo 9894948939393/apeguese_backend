@@ -14,6 +14,7 @@ from flask_session import Session
 from functools import wraps
 import datetime
 from decimal import Decimal
+import psycopg2
 load_dotenv()
 
 def criar_app():
