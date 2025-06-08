@@ -523,13 +523,16 @@ def criar_app():
 
             cursor.execute("SELECT * FROM pedidos WHERE usuario = %s", (usuario_email,))
             pedidos = cursor.fetchall()
+            app.logger.info(f"Pedidos:{pedidos}")
 
             codigos_produtos = set()
             for pedido in pedidos:
                 try:
                     carrinho = json.loads(pedido.get('produtos') or '[]')
+                    app.logger.info(f"Carrinho{carrinho}")
                     if isinstance(carrinho, list):
                         codigos_produtos.update(c for c in carrinho if isinstance(c, int))
+                        app.logger.info(f"Codigo produtos{codigos_produtos}")
                 except:
                     continue
 
@@ -539,6 +542,7 @@ def criar_app():
                 query = f"SELECT codigo, nome, valor, imagem FROM produtos WHERE codigo IN ({placeholders})"
                 cursor.execute(query, tuple(codigos_produtos))
                 produtos_detalhes = {p['codigo']: p for p in cursor.fetchall()}
+                app.logger.info(f"Produtos detalhes:{produtos_detalhes}")
 
             valor_total_geral = Decimal('0.00')
             for pedido in pedidos:
@@ -546,7 +550,7 @@ def criar_app():
                     carrinho = json.loads(pedido.get('produtos') or '[]')
                 except:
                     carrinho = []
-
+                app.logger.info(f"carrinnho:{carrinho}")
                 produtos = []
                 valor_pedido = Decimal('0.00')
 
@@ -561,12 +565,12 @@ def criar_app():
                             'valor': str(valor),
                             'imagem': produto['imagem']
                         })
-
+                app.logger.info(f"Produtos:{produtos}")
                 pedido['produtos_detalhes'] = produtos
                 pedido['valor_produtos_total_recalculado'] = str(valor_pedido)
                 pedido['valor'] = str(pedido.get('valor', '0.00')) 
                 valor_total_geral += Decimal(pedido['valor'])
-
+                app.logger.info(f"Pedidos:{pedidos}")
             return jsonify({
                 "message": "Sucesso",
                 "pedidos": pedidos,
