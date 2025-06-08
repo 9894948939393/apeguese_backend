@@ -211,11 +211,10 @@ def criar_app():
     @app.route('/token', methods=['GET'])
     @token_required
     def listar_sessao():
-        app.logger.info(sessao)
         try:
             sessao =request.decoded_token.get('email')
             return jsonify({"message": "Sucesso"})
-        except: 
+        except Exception as e: 
             return jsonify({"message": ""})
 
     @app.route('/perfil', methods=['GET'])
