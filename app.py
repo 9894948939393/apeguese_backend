@@ -211,17 +211,13 @@ def criar_app():
     @app.route('/token', methods=['GET'])
     @token_required
     def listar_sessao():
-        email_do_token = None
-        if hasattr(request, 'user') and request.user:
-            email_do_token = request.user.get('email')
-
-        app.logger.info(f"Email da sessão: {email_do_token}")
-
-        if email_do_token:
-            return jsonify({"message": "Sucesso", "email": email_do_token})
-        else:
-            return jsonify({"message": "Erro: Email não encontrado no token decodificado"})
-
+        sessao =request.decoded_token.get('email')
+        app.logger.info(sessao)
+        try:
+            if sessao:
+                return jsonify({"message": "Sucesso"})
+        except: 
+            return jsonify({"message": ""})
 
     @app.route('/perfil', methods=['GET'])
     @token_required
