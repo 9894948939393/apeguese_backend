@@ -523,7 +523,7 @@ def criar_app():
             conn = get_db_connection()
             cursor = conn.cursor()
 
-            cursor.execute("SELECT * FROM pedidos WHERE usuario = %s", (usuario_email,))
+            cursor.execute("SELECT * FROM historico WHERE usuario = %s", (usuario_email,))
             pedidos_raw = cursor.fetchall()
 
             all_product_codes_in_orders = set()
@@ -598,7 +598,6 @@ def criar_app():
                 cursor.close()
             if conn:
                 conn.close()
-                return jsonify({"message":"Sucesso","pedidos": pedidos_com_detalhes_produtos, "valor_total_pedidos": valor_total_todos_pedidos})
 
     def calcular_frete_sudeste_com_margem(cep_destino, qtd_caixas):
         cep_origem = "31340520"
@@ -615,7 +614,7 @@ def criar_app():
         precos_por_estado = {
             "SP": 22.00,
             "RJ": 20.00,
-            "MG": 18.00,
+            "MG": 14.00,
             "ES": 25.00,
         }
         faixa_destino = str(cep_destino)[:3]
