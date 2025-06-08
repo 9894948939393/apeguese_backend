@@ -92,40 +92,27 @@ def criar_app():
         return jwt.encode(payload, SECRET_KEY, algorithm='HS256')
 
     # Decorador para proteger rotas
-    def token_required(f):
-            @wraps(f)
-            def decorated(*args, **kwargs):
-                token = request.headers.get('Authorization')
+    def optional_token(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            token = None
+            request.decoded_token = None
 
-                if not token:
-                    return jsonify({'message': 'Token ausente'}), 401
+            auth_header = request.headers.get('Authorization')
+            if auth_header and auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
 
+            if token:
                 try:
-                    token = token.replace("Bearer ", "")
-                    decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-                    request.decoded_token = decoded
+                    decoded_token = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+                    request.decoded_token = decoded_token
                 except jwt.ExpiredSignatureError:
-                    return jsonify({'message': 'Token expirado'}), 401
+                    pass  # Ignora token inválido
                 except jwt.InvalidTokenError:
-                    return jsonify({'message': 'Token inválido'}), 401
+                    pass
 
-                return f(*args, **kwargs)
-
-            return decorated
-
-    logging.basicConfig(level=logging.INFO)
-
-    origins = list(filter(None, [
-        os.getenv("FRONTEND_URL"),
-        os.getenv("FRONTEND_URL2"),
-        os.getenv("FRONTEND_URL3")
-        ]))
-    CORS(app, origins=origins, supports_credentials=True)
-
-    logging.basicConfig(
-        level=logging.DEBUG, 
-        format='%(asctime)s [%(levelname)s] %(message)s'
-    )
+            return f(*args, **kwargs)
+        return decorated
 
     @app.route("/init-db")
     def init_db():
