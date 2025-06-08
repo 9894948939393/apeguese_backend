@@ -91,6 +91,20 @@ def criar_app():
         }
         return jwt.encode(payload, SECRET_KEY, algorithm='HS256')
 
+    logging.basicConfig(level=logging.INFO)
+
+    origins = list(filter(None, [
+        os.getenv("FRONTEND_URL"),
+        os.getenv("FRONTEND_URL2"),
+        os.getenv("FRONTEND_URL3")
+        ]))
+    CORS(app, origins=origins, supports_credentials=True)
+
+    logging.basicConfig(
+        level=logging.DEBUG, 
+        format='%(asctime)s [%(levelname)s] %(message)s'
+    )
+
     # Decorador para proteger rotas
     def optional_token(f):
         @wraps(f)
@@ -126,8 +140,6 @@ def criar_app():
 
     def gerar_codigo():
         return ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=8))
-
-
 
 
     @app.route("/cadastro", methods=["POST"])
