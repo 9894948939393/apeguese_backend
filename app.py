@@ -553,6 +553,7 @@ def criar_app():
                 app.logger.info(f"carrinnho:{carrinho}")
                 produtos = []
                 valor_pedido = Decimal('0.00')
+                
 
                 for codigo in carrinho:
                     produto = produtos_detalhes.get(codigo)
