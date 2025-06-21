@@ -699,7 +699,7 @@ def criar_app():
             cursor.execute('''
                 INSERT INTO produtos (nome, marca, cor, numeracao, genero, valor, descricao, imagem, codigo)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (nome, marca, json.loads(cor), json.loads(numeracao), genero, valor, descricao, nome_imagem, codigo))
+            ''', (nome, marca, json.dumps(cor), json.dumps(numeracao), genero, valor, descricao, nome_imagem, codigo))
             conn.commit()
             cursor.close()
             conn.close()
