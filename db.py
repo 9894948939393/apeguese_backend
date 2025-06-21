@@ -47,7 +47,6 @@ def criar_tabelas():
             nome TEXT NOT NULL,
             marca TEXT,
             valor NUMERIC(10, 2),
-            tamanho TEXT,
             codigo TEXT UNIQUE,
             descricao TEXT,
             cor TEXT,
@@ -66,6 +65,15 @@ def criar_tabelas():
         status TEXT, 
         telefone TEXT,
         endereco TEXT   
+    );
+''')
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS estoque (
+        id SERIAL PRIMARY KEY,
+        produto TEXT,
+        tamanho TEXT,
+        cor TEXT,
+        quantidade TEXT
     );
 ''')
     conn.commit()

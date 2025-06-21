@@ -86,6 +86,18 @@ def criar_app():
         conn.close()
         return dados
     
+    def verificar_estoque(cor, tamanho, produto):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 1 FROM estoque
+            WHERE produto = %s AND cor = %s AND tamanho = %s
+            LIMIT 1
+        """, (produto, cor, tamanho))
+        resultado = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return bool(resultado)
     def generate_token(email):
         payload = {
             'email': email,
@@ -288,21 +300,33 @@ def criar_app():
     @token_required
     def adicionar_carrinho():
         produto = request.form.get("produto")
+        cor = request.form.get("cor")
+        tamanho = request.form.get("tamanho")
         usuario = request.decoded_token.get('email')
+        if verificar_estoque(cor,tamanho,produto):
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario,))
+            resultado = cursor.fetchone()
+            if resultado and resultado['carrinho']:
+                carrinho = json.loads(resultado['carrinho'])
+            else:
+                carrinho = []
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario,))
-        resultado = cursor.fetchone()
-        carrinho = json.loads(resultado['carrinho']) if resultado else []
+            novo_item = {
+                "produto": produto,
+                "cor": cor,
+                "tamanho": tamanho
+            }
+            carrinho.append(novo_item)
 
-        carrinho.append(produto)
-
-        cursor.execute("UPDATE usuarios SET carrinho = %s WHERE email = %s", (json.dumps(carrinho), usuario))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return jsonify({"message": "Produto adicionado ao carrinho com sucesso!"})
+            cursor.execute("UPDATE usuarios SET carrinho = %s WHERE email = %s", (json.dumps(carrinho), usuario))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "Produto adicionado ao carrinho com sucesso!"})
+        else:
+            return jsonify({"message": "Ah, esse produto na numeração e cor que você escolheu está em falta no estoque!"})
 
 
     @app.route('/mostrar_carrinho', methods=['GET'])
@@ -319,11 +343,15 @@ def criar_app():
         produtos_carrinho = []
         valor_total = 0
 
-        for pid in carrinho:
+        for item in carrinho:
+            pid = item.get("produto")
             cursor.execute("SELECT * FROM produtos WHERE codigo = %s", (pid,))
             produto = cursor.fetchone()
             if produto:
-                produtos_carrinho.append(produto)
+                produto_info = dict(produto)
+                produto_info["cor"] = item.get("cor")
+                produto_info["tamanho"] = item.get("tamanho")
+                produtos_carrinho.append(produto_info)
                 valor_total += float(produto['valor'])
 
         session['carrinho'] = carrinho
@@ -346,15 +374,22 @@ def criar_app():
         carrinho = json.loads(resultado['carrinho']) if resultado and resultado['carrinho'] else []
 
 
-        carrinho = [item for item in carrinho if item != produto_id]
+        carrinho = [
+        item for item in carrinho
+        if not (item.get("produto") == produto_id )
+    ]
         produto_carrinho = []
         valor_total = 0
-        for pid in carrinho:
-            cursor.execute("SELECT preco FROM produtos WHERE codigo = %s", (pid,))
-            prod = cursor.fetchone()
-            if prod:
-                valor_total += float(prod['preco'])
-                produto_carrinho.append(prod)
+        for item in carrinho:
+            pid = item.get("produto")
+            cursor.execute("SELECT * FROM produtos WHERE codigo = %s", (pid,))
+            produto = cursor.fetchone()
+            if produto:
+                produto_info = dict(produto)
+                produto_info["cor"] = item.get("cor")
+                produto_info["tamanho"] = item.get("tamanho")
+                produto_carrinho.append(produto_info)
+                valor_total += float(produto['valor'])
         cursor.execute("UPDATE usuarios SET carrinho = %s WHERE email = %s", (json.dumps(carrinho), usuario))
         conn.commit()
         session['valor'] = valor_total
@@ -397,12 +432,17 @@ def criar_app():
 
         produtos_carrinho_detalhes = []
         valor_total = 0
-        for codigo_produto in carrinho_produtos_codigos:
-            cursor.execute("SELECT valor FROM produtos WHERE codigo = %s", (codigo_produto,))
-            produto_detalhe = cursor.fetchone()
-            if produto_detalhe:
-                produtos_carrinho_detalhes.append(produto_detalhe)
-                valor_total += float(produto_detalhe['valor'])
+        for item in carrinho_produtos_codigos:
+            pid = item.get("produto")
+            cursor.execute("SELECT * FROM produtos WHERE codigo = %s", (pid,))
+            produto = cursor.fetchone()
+            if produto:
+                produto_info = dict(produto)
+                produto_info["cor"] = item.get("cor")
+                produto_info["tamanho"] = item.get("tamanho")
+                produtos_carrinho_detalhes.append(produto_info)
+                valor_total += float(produto['valor'])
+
 
         session['valor'] = valor_total 
         valor = valor_total
@@ -474,8 +514,9 @@ def criar_app():
             return jsonify({"message": "Erro ao interpretar o carrinho do usuário."})
 
         valor_total_produtos = 0
-        for codigo_produto in carrinho_produtos_codigos:
-            cursor.execute("SELECT valor FROM produtos WHERE codigo = %s", (codigo_produto,))
+        for item in carrinho_produtos_codigos:
+            pid = item.get("produto")
+            cursor.execute("SELECT valor FROM produtos WHERE codigo = %s", (pid,))
             produto_detalhe = cursor.fetchone()
             if produto_detalhe:
                 valor_total_produtos += float(produto_detalhe['valor'])
@@ -617,12 +658,38 @@ def criar_app():
     def adicionar_produto():
         nome = request.form.get('nome')
         marca = request.form.get("marca")
-        cor = request.form.get("cor")
-        numeracao = request.form.get("numeracao")
+        cor_offwhite = request.form.get("off-white")
+        cor_preta = request.form.get("preta")
+        cor_xadrez = request.form.get("xadrez")
+        cor_listrada = request.form.get("listrada")
+        cor_camel = request.form.get("camel")
+        cor_estampa = request.form.get("estampa")
+        cor_outra1 = request.form.get("outra1")
+        cor_outra2 = request.form.get("outra2")
+        tam_36 = request.form.get("36")
+        tam_38 = request.form.get("38")
+        tam_40 = request.form.get("40")
+        tam_42 = request.form.get("42")
         genero = request.form.get("genero")
         descricao = request.form.get("descricao")
         valor = request.form.get("valor")
         imagem = request.files.get("imagem")
+
+        cor = []
+        if cor_offwhite: cor.append("off-white")
+        if cor_preta: cor.append("preta")
+        if cor_xadrez: cor.append("xadrez")
+        if cor_listrada: cor.append("listrada")
+        if cor_camel: cor.append("camel")
+        if cor_estampa: cor.append("estampa")
+        if cor_outra1: cor.append(cor_outra1)
+        if cor_outra2: cor.append(cor_outra2)
+
+        numeracao = []
+        if tam_36: numeracao.append("36")
+        if tam_38: numeracao.append("38")
+        if tam_40: numeracao.append("40")
+        if tam_42: numeracao.append("42")
 
         codigo = gerar_codigo_produto()
         nome_imagem = salvar_imagem(imagem, codigo, nome)
@@ -632,14 +699,33 @@ def criar_app():
             cursor.execute('''
                 INSERT INTO produtos (nome, marca, cor, numeracao, genero, valor, descricao, imagem, codigo)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (nome, marca, cor, numeracao, genero, valor, descricao, nome_imagem, codigo))
+            ''', (nome, marca, json.loads(cor), json.loads(numeracao), genero, valor, descricao, nome_imagem, codigo))
             conn.commit()
             cursor.close()
             conn.close()
             return jsonify({"message": "Produto adicionado com sucesso!"})
         except:
             return jsonify({"message": "Erro ao adicionar produto."}), 500
-
+    @app.route('/novo_estoque', methods=['POST'])
+    def adicionar_estoque():
+        produto = request.form.get('produto')
+        filial = request.form.get("fllial")
+        cor = request.form.get("cor")
+        numeracao = request.form.get("numeracao")
+        quantidade = request.form.get("quantidade")
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO estoque (produto,quantidade, cor, numeracao,)
+                VALUES (%s, %s, %s, %s)
+            ''', (produto,quantidade,cor, numeracao,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "Estoque criado com sucesso!"})
+        except:
+            return jsonify({"message": "Erro ao criar estoque."}), 500
     @app.route('/atualizar_preco', methods=['POST'])
     def atualizar_preco():
         produto = request.form.get("produto")
@@ -651,7 +737,19 @@ def criar_app():
         cursor.close()
         conn.close()
         return jsonify({"message": "Valor atualizado com sucesso!"})
-
+    @app.route('/atualizar_estoque', methods=['POST'])
+    def atualizar_estoque():
+        produto = request.form.get("produto")
+        quantidade = request.form.get("quantidade")
+        cor = request.form.get("cor")
+        tamanho = request.form.get("tamanho")
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE estoque SET quantidade = %s WHERE produto = %s, cor=%s, numeracao=%s", (quantidade, produto,cor,tamanho,))
+        conn.commit()
+        cursor.close()
+        conn.close()                
+        return jsonify({"message": "Estoque atualizado com sucesso!"})
     @app.route('/deletar_produto', methods=['POST'])
     def deletar_produto():
         produto = request.form.get("produto")
