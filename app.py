@@ -705,7 +705,7 @@ def criar_app():
             conn.close()
             return jsonify({"message": "Produto adicionado com sucesso!"})
         except:
-            return jsonify({"message": "Erro ao adicionar produto."}), 500
+            return jsonify({"message": "Erro ao adicionar produto."})
     @app.route('/novo_estoque', methods=['POST'])
     def adicionar_estoque():
         produto = request.form.get('produto')
