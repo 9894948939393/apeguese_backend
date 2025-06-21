@@ -760,20 +760,21 @@ def criar_app():
         cursor.close()
         conn.close()
         return jsonify({"message": "Produto deletado com sucesso"})
-    @app.route('/atualizar_preco', methods=['POST'])
-    def atualizar_preco():
+    @app.route('/atualizar_status', methods=['POST'])
+    def atualizar_status():
+        status = request.form.get("status")
         produto = request.form.get("produto")
-        preco = request.form.get("preco")
+        usuario = request.form.get("usuario")
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("UPDATE produtos SET valor = %s WHERE nome = %s", (preco, produto,))
+        cursor.execute("UPDATE pedidos SET status = %s WHERE usuario = %s,produtos = %s ", (status,usuario ,produto,))
         conn.commit()
         cursor.close()
         conn.close()
         return jsonify({"message": "Valor atualizado com sucesso!"})
 
 
-        
+
 
     @app.route("/alterar_endereco", methods=["POST"])
     @token_required
