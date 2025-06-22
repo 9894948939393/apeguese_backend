@@ -709,7 +709,6 @@ def criar_app():
     @app.route('/novo_estoque', methods=['POST'])
     def adicionar_estoque():
         produto = request.form.get('produto')
-        filial = request.form.get("fllial")
         cor = request.form.get("cor")
         numeracao = request.form.get("numeracao")
         quantidade = request.form.get("quantidade")
