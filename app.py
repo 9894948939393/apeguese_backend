@@ -90,14 +90,19 @@ def criar_app():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT 1 FROM estoque
-            WHERE produto = %s AND cor = %s AND tamanho = %s
-            LIMIT 1
-        """, (produto, cor, tamanho))
-        resultado = cursor.fetchone()
+            SELECT cor, tamanho FROM estoque
+            WHERE produto = %s
+        """, (produto,))
+        linhas = cursor.fetchall()
         cursor.close()
         conn.close()
-        return bool(resultado)
+
+        for linha in linhas:
+            lista_cor = json.loads(linha[0])
+            lista_tamanho = json.loads(linha[1])
+            if cor in lista_cor and tamanho in lista_tamanho:
+                return True
+        return False
     def generate_token(email):
         payload = {
             'email': email,
