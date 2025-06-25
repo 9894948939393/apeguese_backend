@@ -716,7 +716,7 @@ def criar_app():
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO estoque (produto,quantidade, cor, tamanho,)
+                INSERT INTO estoque (produto,quantidade, cor, tamanho)
                 VALUES (%s, %s, %s, %s)
             ''', (produto,quantidade,cor, numeracao,))
             conn.commit()
