@@ -90,27 +90,18 @@ def criar_app():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT cor, tamanho FROM estoque
-            WHERE produto = %s
-        """, (produto,))
+            SELECT * FROM estoque
+            WHERE produto = %s AND cor = %s AND tamanho = %s
+        """, (produto,cor, tamanho))
         linhas = cursor.fetchall()
         cursor.close()
         conn.close()
 
-        for linha in linhas:
-            cor_str = linha[0].replace('""', '"')[1:-1]  # tira aspas externas e corrige internas
-            tamanho_str = linha[1].replace('""', '"')[1:-1]
-
-            try:
-                lista_cor = json.loads(f'[{cor_str}]')
-                lista_tamanho = json.loads(f'[{tamanho_str}]')
-            except Exception as e:
-                print("Erro ao decodificar JSON do estoque:", e)
-                continue
-
-            if cor in lista_cor and tamanho in lista_tamanho:
-                return True
-        return False
+        if linhas:
+            return True
+        else:
+            return False
+    
     def generate_token(email):
         payload = {
             'email': email,
@@ -118,7 +109,6 @@ def criar_app():
         }
         return jwt.encode(payload, SECRET_KEY, algorithm='HS256')
 
-    # Decorador para proteger rotas
     def token_required(f):
             @wraps(f)
             def decorated(*args, **kwargs):
@@ -314,6 +304,7 @@ def criar_app():
     def adicionar_carrinho():
         produto = request.form.get("produto")
         cor = request.form.get("cor")
+        print(cor)
         tamanho = request.form.get("tamanho")
         usuario = request.decoded_token.get('email')
         if verificar_estoque(cor,tamanho,produto):
@@ -725,6 +716,7 @@ def criar_app():
         cor = request.form.get("cor")
         numeracao = request.form.get("numeracao")
         quantidade = request.form.get("quantidade")
+        
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
