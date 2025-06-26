@@ -98,11 +98,19 @@ def criar_app():
         conn.close()
 
         for linha in linhas:
-            lista_cor = json.loads(linha[0])
-            lista_tamanho = json.loads(linha[1])
+            cor_str = linha[0].replace('""', '"')  # corrige aspas duplas duplicadas
+            tamanho_str = linha[1].replace('""', '"')
+
+            try:
+                lista_cor = json.loads(cor_str)
+                lista_tamanho = json.loads(tamanho_str)
+            except json.JSONDecodeError as e:
+                print("Erro ao decodificar JSON:", e)
+                continue
+
             if cor in lista_cor and tamanho in lista_tamanho:
                 return True
-        return False
+    return False
     def generate_token(email):
         payload = {
             'email': email,
