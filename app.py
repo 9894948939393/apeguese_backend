@@ -312,7 +312,7 @@ def criar_app():
         conn.close()
         return jsonify({"produto": produto})
 
-
+    @app.route('/adicionar_carrinho', methods=['POST'])
     def adicionar_carrinho():
         produto_codigo = request.form.get("produto") 
         cor = request.form.get("cor")
