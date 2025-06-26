@@ -313,38 +313,62 @@ def criar_app():
         return jsonify({"produto": produto})
 
 
-    @app.route('/adicionar_carrinho', methods=['POST'])
-    @token_required
     def adicionar_carrinho():
-        produto = request.form.get("produto")
+        produto_codigo = request.form.get("produto") 
         cor = request.form.get("cor")
-        print(cor)
         tamanho = request.form.get("tamanho")
-        usuario = request.decoded_token.get('email')
-        if verificar_estoque(cor,tamanho,produto):
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario,))
-            resultado = cursor.fetchone()
-            if resultado and resultado['carrinho']:
-                carrinho = json.loads(resultado['carrinho'])
-            else:
-                carrinho = []
+        usuario_email = request.decoded_token.get('email')
 
-            novo_item = {
-                "produto": produto,
-                "cor": cor,
-                "tamanho": tamanho
-            }
-            carrinho.append(novo_item)
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"message": "Erro de conexão com o banco de dados."}), 500
 
-            cursor.execute("UPDATE usuarios SET carrinho = %s WHERE email = %s", (json.dumps(carrinho), usuario))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({"message": "Produto adicionado ao carrinho com sucesso!"})
-        else:
-            return jsonify({"message": "Ah, esse produto na numeração e cor que você escolheu está em falta no estoque!"})
+        try:
+            with conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                    if not verificar_estoque(cor, tamanho, produto_codigo, conn, cursor):
+                        conn.rollback()
+                        return jsonify({"message": "Ah, esse produto na numeração e cor que você escolheu está em falta no estoque!"}), 400
+                    cursor.execute("""
+                        UPDATE estoque
+                        SET quantidade = quantidade - 1
+                        WHERE produto = %s AND cor = %s AND %s = %s AND quantidade > 0
+                        RETURNING quantidade;
+                    """, (produto_codigo, cor, tamanho, tamanho))
+
+                    updated_row = cursor.fetchone()
+                    if not updated_row:
+                        conn.rollback()
+                        return jsonify({"message": "Falha ao atualizar estoque, tente novamente."}), 500
+
+                    cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario_email,))
+                    resultado = cursor.fetchone()
+
+                    carrinho = json.loads(resultado['carrinho']) if resultado and resultado['carrinho'] else []
+
+                    novo_item = {
+                        "produto": produto_codigo,
+                        "cor": cor,
+                        "tamanho": tamanho
+                    }
+                    carrinho.append(novo_item)
+
+                    cursor.execute("UPDATE usuarios SET carrinho = %s WHERE email = %s", (json.dumps(carrinho), usuario_email))
+
+                    conn.commit() 
+                    return jsonify({"message": "Produto adicionado ao carrinho com sucesso!"})
+
+        except json.JSONDecodeError:
+            conn.rollback()
+            return jsonify({"message": "Erro ao processar dados do carrinho do usuário."}), 500
+        except Exception as e:
+            conn.rollback() 
+            print(f"Erro em adicionar_carrinho: {e}")
+            return jsonify({"message": "Erro interno do servidor ao adicionar ao carrinho."}), 500
+        finally:
+            if conn:
+                conn.close()
+
 
 
     @app.route('/mostrar_carrinho', methods=['GET'])
