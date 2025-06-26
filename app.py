@@ -98,7 +98,7 @@ def criar_app():
         conn.close()
 
         for linha in linhas:
-            cor_str = linha[0].replace('""', '"')  # corrige aspas duplas duplicadas
+            cor_str = linha[0].replace('""', '"')  
             tamanho_str = linha[1].replace('""', '"')
 
             try:
@@ -110,7 +110,7 @@ def criar_app():
 
             if cor in lista_cor and tamanho in lista_tamanho:
                 return True
-    return False
+        return False
     def generate_token(email):
         payload = {
             'email': email,
