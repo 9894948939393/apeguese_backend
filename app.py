@@ -333,7 +333,7 @@ def criar_app():
                     cursor.execute("""
                         UPDATE estoque
                         SET quantidade = quantidade - 1
-                        WHERE produto = %s AND cor = %s AND %s = %s AND quantidade > 0
+                        WHERE produto = %s AND cor = %s AND tamanho = %s AND quantidade > 0
                         RETURNING quantidade;
                     """, (produto_codigo, cor, tamanho, tamanho))
 
