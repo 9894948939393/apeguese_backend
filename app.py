@@ -98,14 +98,14 @@ def criar_app():
         conn.close()
 
         for linha in linhas:
-            cor_str = linha[0].replace('""', '"')  
-            tamanho_str = linha[1].replace('""', '"')
+            cor_str = linha[0].replace('""', '"')[1:-1]  # tira aspas externas e corrige internas
+            tamanho_str = linha[1].replace('""', '"')[1:-1]
 
             try:
-                lista_cor = json.loads(cor_str)
-                lista_tamanho = json.loads(tamanho_str)
-            except json.JSONDecodeError as e:
-                print("Erro ao decodificar JSON:", e)
+                lista_cor = json.loads(f'[{cor_str}]')
+                lista_tamanho = json.loads(f'[{tamanho_str}]')
+            except Exception as e:
+                print("Erro ao decodificar JSON do estoque:", e)
                 continue
 
             if cor in lista_cor and tamanho in lista_tamanho:
