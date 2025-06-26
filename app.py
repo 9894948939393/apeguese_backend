@@ -87,8 +87,9 @@ def criar_app():
         return dados
     
     def verificar_estoque(cor: str, tamanho: str, produto: str, conn=None, cursor=None) -> bool:
-
-
+        _conn = conn
+        _cursor = cursor
+        close_resources = False
         try:
             _conn = get_db_connection()
             if _conn is None:
@@ -322,14 +323,14 @@ def criar_app():
 
         conn = get_db_connection()
         if conn is None:
-            return jsonify({"message": "Erro de conexão com o banco de dados."}), 500
+            return jsonify({"message": "Erro de conexão com o banco de dados."})
 
         try:
             with conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
                     if not verificar_estoque(cor, tamanho, produto_codigo, conn, cursor):
                         conn.rollback()
-                        return jsonify({"message": "Ah, esse produto na numeração e cor que você escolheu está em falta no estoque!"}), 400
+                        return jsonify({"message": "Ah, esse produto na numeração e cor que você escolheu está em falta no estoque!"})
                     cursor.execute("""
                         UPDATE estoque
                         SET quantidade = quantidade - 1
@@ -340,7 +341,7 @@ def criar_app():
                     updated_row = cursor.fetchone()
                     if not updated_row:
                         conn.rollback()
-                        return jsonify({"message": "Falha ao atualizar estoque, tente novamente."}), 500
+                        return jsonify({"message": "Falha ao atualizar estoque, tente novamente."})
 
                     cursor.execute("SELECT carrinho FROM usuarios WHERE email = %s", (usuario_email,))
                     resultado = cursor.fetchone()
