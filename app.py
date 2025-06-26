@@ -86,21 +86,35 @@ def criar_app():
         conn.close()
         return dados
     
-    def verificar_estoque(cor, tamanho, produto):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT * FROM estoque
-            WHERE produto = %s AND cor = %s AND tamanho = %s
-        """, (produto,cor, tamanho))
-        linhas = cursor.fetchall()
-        cursor.close()
-        conn.close()
+    def verificar_estoque(cor: str, tamanho: str, produto: str, conn=None, cursor=None) -> bool:
 
-        if linhas:
-            return True
-        else:
+
+        try:
+            _conn = get_db_connection()
+            if _conn is None:
+                return False
+            _cursor = _conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            close_resources = True
+            _cursor.execute("""
+                SELECT quantidade FROM estoque
+                WHERE produto = %s AND cor = %s AND tamanho = %s
+                FOR UPDATE
+            """, (produto, cor, tamanho))
+            row = _cursor.fetchone()
+
+            if row and row['quantidade'] > 0:
+                return True
+            else:
+                return False
+        except Exception as e:
+            print(f"Erro ao verificar estoque: {e}")
             return False
+        finally:
+            if close_resources:
+                if _cursor:
+                    _cursor.close()
+                if _conn:
+                    _conn.close()
     
     def generate_token(email):
         payload = {
