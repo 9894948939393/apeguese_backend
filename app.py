@@ -321,13 +321,13 @@ def criar_app():
         tamanho = request.form.get("tamanho")
         usuario_email = request.decoded_token.get('email')
 
-        conn = get_db_connection()
+        conn = get_db_connection()              
         if conn is None:
             return jsonify({"message": "Erro de conexão com o banco de dados."})
 
         try:
             with conn:
-                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                with conn.cursor() as cursor:
                     if not verificar_estoque(cor, tamanho, produto_codigo, conn, cursor):
                         conn.rollback()
                         return jsonify({"message": "Ah, esse produto na numeração e cor que você escolheu está em falta no estoque!"})
@@ -336,7 +336,7 @@ def criar_app():
                         SET quantidade = quantidade - 1
                         WHERE produto = %s AND cor = %s AND tamanho = %s AND quantidade > 0
                         RETURNING quantidade;
-                    """, (produto_codigo, cor, tamanho, tamanho))
+                    """, (produto_codigo, cor, tamanho,))
 
                     updated_row = cursor.fetchone()
                     if not updated_row:
