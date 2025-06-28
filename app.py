@@ -317,6 +317,7 @@ def criar_app():
     @token_required
     def adicionar_carrinho():
         produto_codigo = request.form.get("produto") 
+        produto_nome = request.form.get("produto_nome") 
         cor = request.form.get("cor")
         tamanho = request.form.get("tamanho")
         usuario_email = request.decoded_token.get('email')
@@ -328,7 +329,7 @@ def criar_app():
         try:
             with conn:
                 with conn.cursor() as cursor:
-                    if not verificar_estoque(cor, tamanho, produto_codigo, conn, cursor):
+                    if not verificar_estoque(cor, tamanho, produto_nome, conn, cursor):
                         conn.rollback()
                         return jsonify({"message": "Ah, esse produto na numeração e cor que você escolheu está em falta no estoque!"})
                     cursor.execute("""
