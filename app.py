@@ -317,9 +317,6 @@ def criar_app():
     @token_required
     def adicionar_carrinho():
         produto_codigo = request.form.get("produto") 
-        cursor.execute("SELECT nome FROM produtos WHERE codigo = %s", (produto_codigo,))
-        res = cursor.fetchone()
-        produto_nome = res['nome'] if res else None
         cor = request.form.get("cor")
         tamanho = request.form.get("tamanho")
         usuario_email = request.decoded_token.get('email')
@@ -332,6 +329,9 @@ def criar_app():
             with conn:
                 with conn.cursor() as cursor:
                     if not verificar_estoque(cor, int(tamanho), produto_nome, conn, cursor):
+                        cursor.execute("SELECT nome FROM produtos WHERE codigo = %s", (produto_codigo,))
+                        res = cursor.fetchone()
+                        produto_nome = res['nome'] if res else None
                         conn.rollback()
                         return jsonify({"message": "Ah, esse produto na numeração e cor que você escolheu está em falta no estoque!"})
                     cursor.execute("""
