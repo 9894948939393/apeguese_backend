@@ -329,11 +329,11 @@ def criar_app():
             with conn:
                 with conn.cursor() as cursor:
                     if not verificar_estoque(cor, int(tamanho), produto_nome, conn, cursor):
-                        cursor.execute("SELECT nome FROM produtos WHERE codigo = %s", (produto_codigo,))
-                        res = cursor.fetchone()
-                        produto_nome = res['nome'] if res else None
-                        conn.rollback()
                         return jsonify({"message": "Ah, esse produto na numeração e cor que você escolheu está em falta no estoque!"})
+                    cursor.execute("SELECT nome FROM produtos WHERE codigo = %s", (produto_codigo,))
+                    res = cursor.fetchone()
+                    produto_nome = res['nome'] if res else None
+                    conn.rollback()
                     cursor.execute("""
                         UPDATE estoque
                         SET quantidade = quantidade - 1
