@@ -86,10 +86,7 @@ def criar_app():
         conn.close()
         return dados
     
-    def verificar_estoque(cor: str, tamanho: str, produto: str, conn=None, cursor=None) -> bool:
-        _conn = conn
-        _cursor = cursor
-        close_resources = False
+    def verificar_estoque(cor: str, tamanho: str, produto: str,) -> bool:
         try:
             _conn = get_db_connection()
             if _conn is None:
@@ -328,7 +325,7 @@ def criar_app():
         try:
             with conn:
                 with conn.cursor() as cursor:
-                    if not verificar_estoque(cor, tamanho, produto_nome, conn, cursor):
+                    if not verificar_estoque(cor, tamanho, produto_nome):
                         conn.rollback()
                         return jsonify({"message": "Ah, esse produto na numeração e cor que você escolheu está em falta no estoque!"})
                     cursor.execute("""
