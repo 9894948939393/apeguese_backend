@@ -94,7 +94,7 @@ def criar_app():
             _conn = get_db_connection()
             if _conn is None:
                 return False
-            _cursor = _conn.cursor()
+            _cursor = _conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             close_resources = True
             _cursor.execute("""
                 SELECT quantidade FROM estoque
@@ -317,10 +317,11 @@ def criar_app():
     @token_required
     def adicionar_carrinho():
         produto_codigo = request.form.get("produto") 
+        produto_nome = request.form.get("produto_nome") 
         cor = request.form.get("cor")
         tamanho = request.form.get("tamanho")
         usuario_email = request.decoded_token.get('email')
-
+        print(f"Produto: {produto_codigo},Produto nome{produto_nome} Cor: {cor}, Tamanho: {tamanho}, Usuário: {usuario_email}")
         conn = get_db_connection()              
         if conn is None:
             return jsonify({"message": "Erro de conexão com o banco de dados."})
@@ -328,18 +329,15 @@ def criar_app():
         try:
             with conn:
                 with conn.cursor() as cursor:
-                    if not verificar_estoque(cor, int(tamanho), produto_nome, conn, cursor):
+                    if not verificar_estoque(cor, tamanho, produto_nome, conn, cursor):
+                        conn.rollback()
                         return jsonify({"message": "Ah, esse produto na numeração e cor que você escolheu está em falta no estoque!"})
-                    cursor.execute("SELECT nome FROM produtos WHERE codigo = %s", (produto_codigo,))
-                    res = cursor.fetchone()
-                    produto_nome = res['nome'] if res else None
-                    conn.rollback()
                     cursor.execute("""
                         UPDATE estoque
                         SET quantidade = quantidade - 1
                         WHERE produto = %s AND cor = %s AND tamanho = %s AND quantidade > 0
                         RETURNING quantidade;
-                    """, (produto_codigo, cor, tamanho,))
+                    """, (produto_nome, cor, tamanho,))
 
                     updated_row = cursor.fetchone()
                     if not updated_row:
