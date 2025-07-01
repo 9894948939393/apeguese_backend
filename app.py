@@ -91,7 +91,8 @@ def criar_app():
             _conn = get_db_connection()
             if _conn is None:
                 return False
-            _cursor = _conn.cursor(c)
+            _cursor = _conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            close_resources = True
             close_resources = True
             _cursor.execute("""
                 SELECT quantidade FROM estoque
@@ -324,7 +325,7 @@ def criar_app():
 
         try:
             with conn:
-                with conn.cursor() as cursor:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
                     if not verificar_estoque(cor, tamanho, produto_nome):
                         conn.rollback()
                         return jsonify({"message": "Ah, esse produto na numeração e cor que você escolheu está em falta no estoque!"})
