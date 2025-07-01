@@ -94,13 +94,12 @@ def criar_app():
             _conn = get_db_connection()
             if _conn is None:
                 return False
-            _cursor = _conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            _cursor = _conn.cursor(c)
             close_resources = True
             _cursor.execute("""
                 SELECT quantidade FROM estoque
                 WHERE produto = %s AND cor = %s AND tamanho = %s
-                FOR UPDATE
-            """, (produto, cor, tamanho))
+            """, (produto, cor, tamanho,))
             row = _cursor.fetchone()
 
             if row and row['quantidade'] > 0:
