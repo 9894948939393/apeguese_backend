@@ -94,7 +94,7 @@ def criar_app():
             _conn = get_db_connection()
             if _conn is None:
                 return False
-            _cursor = _conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            _cursor = _conn.cursor()
             close_resources = True
             _cursor.execute("""
                 SELECT quantidade FROM estoque
