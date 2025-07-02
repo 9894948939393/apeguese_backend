@@ -614,7 +614,9 @@ def criar_app():
                     carrinho = json.loads(pedido.get('produtos') or '[]')
                     app.logger.info(f"Carrinho{carrinho}")
                     if isinstance(carrinho, list):
-                        codigos_produtos.update(int(c['produto']) for c in carrinho if isinstance(c, dict) and 'produto' in c)
+                        codigos_produtos.update(
+                            str(c['produto']) for c in carrinho 
+                            if isinstance(c, dict) and 'produto' in c)
                         app.logger.info(f"Codigo produtos{codigos_produtos}")
                 except Exception as e:
                     app.logger.warning(f"Erro ao interpretar carrinho: {e}")
