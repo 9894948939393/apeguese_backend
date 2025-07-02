@@ -655,6 +655,7 @@ def criar_app():
                                 'status': status,
                                 'imagem': produto['imagem']
                             })
+                            app.logger.info(f"Produtos do pedido:{produtos_do_pedido}")
 
             pedido['produtos_detalhes'] = produtos_do_pedido
             pedido['valor_produtos_total_recalculado'] = str(valor_pedido)
