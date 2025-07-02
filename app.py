@@ -607,11 +607,11 @@ def criar_app():
             cursor.execute("SELECT * FROM pedidos WHERE usuario = %s", (usuario_email,))
             pedidos = cursor.fetchall()
             app.logger.info(f"Pedidos:{pedidos}")
-
             codigos_produtos = []
             for pedido in pedidos:
                 try:
                     carrinho = json.loads(pedido.get('produtos') or '[]')
+                    status = pedido.get('status')
                     app.logger.info(f"Carrinho{carrinho}")
                     for c in carrinho:
                         if isinstance(c, dict) and 'produto' in c:
@@ -652,6 +652,7 @@ def criar_app():
                                 'codigo': produto['codigo'],
                                 'nome': produto['nome'],
                                 'valor': str(valor_item), 
+                                'status': status,
                                 'imagem': produto['imagem']
                             })
 
