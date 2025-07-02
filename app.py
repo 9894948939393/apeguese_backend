@@ -608,16 +608,14 @@ def criar_app():
             pedidos = cursor.fetchall()
             app.logger.info(f"Pedidos:{pedidos}")
 
-            codigos_produtos = set()
+            codigos_produtos = []
             for pedido in pedidos:
                 try:
                     carrinho = json.loads(pedido.get('produtos') or '[]')
                     app.logger.info(f"Carrinho{carrinho}")
-                    if isinstance(carrinho, list):
-                        codigos_produtos.update(
-                            str(c['produto']) for c in carrinho 
-                            if isinstance(c, dict) and 'produto' in c)
-                        app.logger.info(f"Codigo produtos{codigos_produtos}")
+                    for c in carrinho:
+                        if isinstance(c, dict) and 'produto' in c:
+                            codigos_produtos.append(str(c['produto']))
                 except Exception as e:
                     app.logger.warning(f"Erro ao interpretar carrinho: {e}")
                     continue
@@ -634,30 +632,38 @@ def criar_app():
             for pedido in pedidos:
                 try:
                     carrinho = json.loads(pedido.get('produtos') or '[]')
-                except:
-                    carrinho = []
-                app.logger.info(f"carrinnho:{carrinho}")
-                produtos = []
-                valor_pedido = Decimal('0.00')
-                
+                except json.JSONDecodeError as e:
 
-                for codigo in carrinho:
-                    produto = produtos_detalhes.get(codigo)
-                    if produto:
-                        valor = Decimal(str(produto.get('valor', '0.00')))
-                        valor_pedido += valor
-                        produtos.append({
-                            'codigo': produto['codigo'],
-                            'nome': produto['nome'],
-                            'valor': str(valor),
-                            'imagem': produto['imagem']
-                        })
-                app.logger.info(f"Produtos:{produtos}")
-                pedido['produtos_detalhes'] = produtos
-                pedido['valor_produtos_total_recalculado'] = str(valor_pedido)
-                pedido['valor'] = str(pedido.get('valor', '0.00')) 
-                valor_total_geral += Decimal(pedido['valor'])
-                app.logger.info(f"Pedidos:{pedidos}")
+                    carrinho = []
+                except Exception as e:
+                    carrinho = []
+
+                produtos_do_pedido = []
+                valor_pedido = Decimal('0.00')
+
+                for item_carrinho in carrinho:
+                    if isinstance(item_carrinho, dict) and 'produto' in item_carrinho:
+                        codigo_produto = str(item_carrinho['produto']) 
+                        produto = produtos_detalhes.get(codigo_produto)
+                        if produto:
+                            valor_item = Decimal(str(produto.get('valor', '0.00')))
+                            valor_pedido += valor_item
+                            produtos_do_pedido.append({
+                                'codigo': produto['codigo'],
+                                'nome': produto['nome'],
+                                'valor': str(valor_item), 
+                                'imagem': produto['imagem']
+                            })
+
+            pedido['produtos_detalhes'] = produtos_do_pedido
+            pedido['valor_produtos_total_recalculado'] = str(valor_pedido)
+
+            valor_pedido_original = Decimal(str(pedido.get('valor', '0.00')))
+            valor_total_geral += valor_pedido_original
+
+            pedido['valor'] = str(pedido.get('valor', '0.00'))
+            valor_total_geral += Decimal(pedido['valor'])
+            app.logger.info(f"Pedidos:{pedidos}")
             return jsonify({
                 "message": "Sucesso",
                 "pedidos": pedidos,
