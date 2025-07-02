@@ -100,7 +100,7 @@ def criar_app():
             """, (produto, cor, tamanho,))
             row = _cursor.fetchone()
             print(f"row: {row}")
-            if row and row['quantidade'] > 0:
+            if row and int(row['quantidade']) > 0:
                 return True
             else:
                 return False
