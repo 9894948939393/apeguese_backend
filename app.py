@@ -14,12 +14,14 @@ from flask_session import Session
 from functools import wraps
 import datetime
 from decimal import Decimal
-import psycopg2
+# [cite_start]import psycopg2 # REMOVER [cite: 1]
+# [cite_start]from psycopg2.extras import RealDictCursor # REMOVER (se estiver importando separadamente) [cite: 1]
+
 load_dotenv()
 
 def criar_app():
     app = Flask(__name__)
-    
+
     SECRET_KEY = os.getenv("SECRET_KEY")
     session_dir = os.path.join(os.getcwd(), 'flask_session')
     os.makedirs(session_dir, exist_ok=True)
@@ -29,8 +31,8 @@ def criar_app():
         SESSION_FILE_DIR=session_dir,
         SESSION_PERMANENT=True,
         SESSION_USE_SIGNER=True,
-        SESSION_COOKIE_SAMESITE='None',  
-        SESSION_COOKIE_SECURE=True,    
+        SESSION_COOKIE_SAMESITE='None',
+        SESSION_COOKIE_SECURE=True,
         SESSION_COOKIE_HTTPONLY=True,
         UPLOAD_FOLDER=os.path.join(os.getcwd(), 'uploads')
     )
@@ -39,6 +41,7 @@ def criar_app():
 
     app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
     def gerar_codigo_produto():
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -76,7 +79,6 @@ def criar_app():
         conn.close()
         return dados
 
-
     def carregar_usuarios():
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -85,14 +87,15 @@ def criar_app():
         cursor.close()
         conn.close()
         return dados
-    
+
     def verificar_estoque(cor, tamanho, produto):
         try:
             _conn = get_db_connection()
             print(f"conn: {_conn}")
             if _conn is None:
                 return False
-            _cursor = _conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            # [cite_start]Não é mais necessário especificar cursor_factory aqui, pois a conexão já retorna dicionários [cite: 1]
+            _cursor = _conn.cursor()
             close_resources = True
             _cursor.execute("""
                 SELECT quantidade FROM estoque
@@ -113,7 +116,7 @@ def criar_app():
                     _cursor.close()
                 if _conn:
                     _conn.close()
-    
+
     def generate_token(email):
         payload = {
             'email': email,
@@ -168,7 +171,7 @@ def criar_app():
     CORS(app, origins=origins, supports_credentials=True)
 
     logging.basicConfig(
-        level=logging.DEBUG, 
+        level=logging.DEBUG,
         format='%(asctime)s [%(levelname)s] %(message)s'
     )
 
@@ -180,13 +183,8 @@ def criar_app():
         except Exception as e:
             return jsonify({"erro": str(e)}), 500
 
-
-
     def gerar_codigo():
         return ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=8))
-
-
-
 
     @app.route("/cadastro", methods=["POST"])
     def cadastro():
@@ -259,7 +257,7 @@ def criar_app():
         email = request.decoded_token.get('email') if request.decoded_token else None
         if email:
             return jsonify({"message": "Sucesso","mail": email})
-        else: 
+        else:
             return jsonify({"message": ""})
 
 
@@ -313,19 +311,20 @@ def criar_app():
     @app.route('/adicionar_carrinho', methods=['POST'])
     @token_required
     def adicionar_carrinho():
-        produto_codigo = request.form.get("produto") 
-        produto_nome = request.form.get("produto_nome") 
+        produto_codigo = request.form.get("produto")
+        produto_nome = request.form.get("produto_nome")
         cor = request.form.get("cor")
         tamanho = request.form.get("tamanho")
         usuario_email = request.decoded_token.get('email')
         print(f"Produto: {produto_codigo},Produto nome{produto_nome} Cor: {cor}, Tamanho: {tamanho}, Usuário: {usuario_email}")
-        conn = get_db_connection()              
+        conn = get_db_connection()
         if conn is None:
             return jsonify({"message": "Erro de conexão com o banco de dados."})
 
         try:
             with conn:
-                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                # [cite_start]Não é mais necessário especificar cursor_factory aqui [cite: 1]
+                with conn.cursor() as cursor:
                     if not verificar_estoque(cor, tamanho, produto_nome):
                         conn.rollback()
                         return jsonify({"message": "Ah, esse produto na numeração e cor que você escolheu está em falta no estoque!"})
@@ -355,14 +354,14 @@ def criar_app():
 
                     cursor.execute("UPDATE usuarios SET carrinho = %s WHERE email = %s", (json.dumps(carrinho), usuario_email))
 
-                    conn.commit() 
+                    conn.commit()
                     return jsonify({"message": "Produto adicionado ao carrinho com sucesso!"})
 
         except json.JSONDecodeError:
             conn.rollback()
             return jsonify({"message": "Erro ao processar dados do carrinho do usuário."}), 500
         except Exception as e:
-            conn.rollback() 
+            conn.rollback()
             print(f"Erro em adicionar_carrinho: {e}")
             return jsonify({"message": "Erro interno do servidor ao adicionar ao carrinho."}), 500
         finally:
@@ -406,7 +405,7 @@ def criar_app():
     @app.route('/deletar_carrinho', methods=['POST'])
     @token_required
     def deletar_carrinho():
-        produto_id = request.form.get("produto")  
+        produto_id = request.form.get("produto")
         usuario = request.decoded_token.get('email')
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -486,7 +485,7 @@ def criar_app():
                 valor_total += float(produto['valor'])
 
 
-        session['valor'] = valor_total 
+        session['valor'] = valor_total
         valor = valor_total
 
         cursor.execute("""
@@ -588,12 +587,12 @@ def criar_app():
         ''', (comprador_email, comprador, json.dumps(carrinho_produtos_codigos), total_final_pedido, json.dumps(endereco), user['telefone'], status,))
 
         cursor.execute("UPDATE usuarios SET historico = %s, carrinho = %s WHERE email = %s",
-                    (json.dumps(carrinho_produtos_codigos), json.dumps([]), comprador_email,)) 
+                    (json.dumps(carrinho_produtos_codigos), json.dumps([]), comprador_email,))
 
         conn.commit()
         cursor.close()
         conn.close()
-        session.pop('carrinho', None) 
+        session.pop('carrinho', None)
         session.pop('valor', None)
         return jsonify({"message": "Pedido realizado com sucesso!"})
     @app.route('/mostrar_pedidos', methods=['GET'])
@@ -602,7 +601,8 @@ def criar_app():
         usuario_email = request.decoded_token.get('email')
         try:
             conn = get_db_connection()
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            # [cite_start]Não é mais necessário especificar cursor_factory aqui [cite: 1]
+            cursor = conn.cursor()
 
             cursor.execute("SELECT * FROM pedidos WHERE usuario = %s", (usuario_email,))
             pedidos = cursor.fetchall()
@@ -643,7 +643,7 @@ def criar_app():
 
                 for item_carrinho in carrinho:
                     if isinstance(item_carrinho, dict) and 'produto' in item_carrinho:
-                        codigo_produto = str(item_carrinho['produto']) 
+                        codigo_produto = str(item_carrinho['produto'])
                         produto = produtos_detalhes.get(codigo_produto)
                         if produto:
                             valor_item = Decimal(str(produto.get('valor', '0.00')))
@@ -651,7 +651,7 @@ def criar_app():
                             produtos_do_pedido.append({
                                 'codigo': produto['codigo'],
                                 'nome': produto['nome'],
-                                'valor': str(valor_item), 
+                                'valor': str(valor_item),
                                 'status': status,
                                 'imagem': produto['imagem']
                             })
@@ -757,15 +757,17 @@ def criar_app():
             cursor.close()
             conn.close()
             return jsonify({"message": "Produto adicionado com sucesso!"})
-        except:
-            return jsonify({"message": "Erro ao adicionar produto."})
+        except Exception as e: # Adicionado tratamento de erro para depuração
+            logging.error(f"Erro ao adicionar produto: {e}")
+            return jsonify({"message": f"Erro ao adicionar produto: {e}"}), 500 # Retornar erro detalhado
+
     @app.route('/novo_estoque', methods=['POST'])
     def adicionar_estoque():
         produto = request.form.get('produto')
         cor = request.form.get("cor")
         numeracao = request.form.get("numeracao")
         quantidade = request.form.get("quantidade")
-        
+
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -777,8 +779,10 @@ def criar_app():
             cursor.close()
             conn.close()
             return jsonify({"message": "Estoque criado com sucesso!"})
-        except:
-            return jsonify({"message": "Erro ao criar estoque."}), 500
+        except Exception as e: # Adicionado tratamento de erro para depuração
+            logging.error(f"Erro ao criar estoque: {e}")
+            return jsonify({"message": f"Erro ao criar estoque: {e}"}), 500
+
     @app.route('/atualizar_preco', methods=['POST'])
     def atualizar_preco():
         produto = request.form.get("produto")
@@ -790,6 +794,7 @@ def criar_app():
         cursor.close()
         conn.close()
         return jsonify({"message": "Valor atualizado com sucesso!"})
+
     @app.route('/atualizar_estoque', methods=['POST'])
     def atualizar_estoque():
         produto = request.form.get("produto")
@@ -798,11 +803,12 @@ def criar_app():
         tamanho = request.form.get("tamanho")
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("UPDATE estoque SET quantidade = %s WHERE produto = %s, cor=%s, numeracao=%s", (quantidade, produto,cor,tamanho,))
+        [cite_start]cursor.execute("UPDATE estoque SET quantidade = %s WHERE produto = %s AND cor=%s AND tamanho=%s", (quantidade, produto,cor,tamanho,)) # Corrigido operador AND [cite: 1]
         conn.commit()
         cursor.close()
-        conn.close()                
+        conn.close()
         return jsonify({"message": "Estoque atualizado com sucesso!"})
+
     @app.route('/deletar_produto', methods=['POST'])
     def deletar_produto():
         produto = request.form.get("produto")
@@ -813,6 +819,7 @@ def criar_app():
         cursor.close()
         conn.close()
         return jsonify({"message": "Produto deletado com sucesso"})
+
     @app.route('/atualizar_status', methods=['POST'])
     def atualizar_status():
         status = request.form.get("status")
@@ -820,14 +827,11 @@ def criar_app():
         usuario = request.form.get("usuario")
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("UPDATE pedidos SET status = %s WHERE usuario = %s,produtos = %s ", (status,usuario ,produto,))
+        [cite_start]cursor.execute("UPDATE pedidos SET status = %s WHERE usuario = %s AND produtos = %s ", (status,usuario ,produto,)) # Corrigido operador AND [cite: 1]
         conn.commit()
         cursor.close()
         conn.close()
         return jsonify({"message": "Valor atualizado com sucesso!"})
-
-
-
 
     @app.route("/alterar_endereco", methods=["POST"])
     @token_required
@@ -865,5 +869,5 @@ def criar_app():
             response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
             response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS,PUT,DELETE"
         return response
-        
+
     return app
