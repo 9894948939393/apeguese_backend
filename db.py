@@ -73,7 +73,7 @@ def criar_tabelas():
         produto TEXT,
         tamanho TEXT,
         cor TEXT,
-        quantidade TEXT
+        quantidade INTEGER
     );
 ''')
     conn.commit()

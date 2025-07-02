@@ -100,7 +100,7 @@ def criar_app():
             """, (produto, cor, tamanho,))
             row = _cursor.fetchone()
             print(f"row: {row}")
-            if row and int(row['quantidade']) > 0:
+            if row and row['quantidade'] > 0:
                 return True
             else:
                 return False
@@ -614,7 +614,7 @@ def criar_app():
                     carrinho = json.loads(pedido.get('produtos') or '[]')
                     app.logger.info(f"Carrinho{carrinho}")
                     if isinstance(carrinho, list):
-                        codigos_produtos.update(c for c in carrinho if isinstance(c, int))
+                        codigos_produtos.update(c['produto'] for c in carrinho if isinstance(c, dict) and 'produto' in c)
                         app.logger.info(f"Codigo produtos{codigos_produtos}")
                 except:
                     continue
@@ -823,6 +823,7 @@ def criar_app():
     def atualizar_endereco():
         dados = request.form
         cep = dados.get("cep")
+        print(f"Cep: {cep}")
         numero = dados.get("numero")
         rua = dados.get("rua")
         bairro = dados.get("bairro")
