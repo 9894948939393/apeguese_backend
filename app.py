@@ -86,20 +86,20 @@ def criar_app():
         conn.close()
         return dados
     
-    def verificar_estoque(cor: str, tamanho: str, produto: str,) -> bool:
+    def verificar_estoque(cor, tamanho, produto):
         try:
             _conn = get_db_connection()
+            print(f"conn: {_conn}")
             if _conn is None:
                 return False
             _cursor = _conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            close_resources = True
             close_resources = True
             _cursor.execute("""
                 SELECT quantidade FROM estoque
                 WHERE produto = %s AND cor = %s AND tamanho = %s
             """, (produto, cor, tamanho,))
             row = _cursor.fetchone()
-
+            print(f"row: {row}")
             if row and row['quantidade'] > 0:
                 return True
             else:
